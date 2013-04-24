@@ -14,9 +14,8 @@ namespace SnsysUS
 	public class SnsysUSWeb : ISite {
 		public string Generate(params string[] parms) {
 			return "<html>"+HTML.Body(
-				HTML.Title("Hey").Class("hi"),
-				HTML.Span("You're attempting to connect to: "),
-				HTML.Span(parms[0])
+				HTML.Title("Hey"),
+				HTML.Span(String.Format("You're attempting to connect to: \"{0}\", which does not exist.", parms[0]))
 				)+"</html>";
 		}
 	}

@@ -36,8 +36,11 @@ namespace WebBack
 			this.process.Start();
 		}
 		public virtual void HandleGET(HTTPProcessor sp) {
-			sp.writeSuccess();
-			sp.outputStream.WriteLine(sitelogic.Generate(sp.http_host + sp.http_url));
+			FileProcessor FP = new FileProcessor(sp, Path.Combine(Environment.CurrentDirectory, "Assets"));
+			if (!FP.Process()) {
+				sp.writeSuccess();
+				sp.WriteToClient(sitelogic.Generate(sp.http_host + sp.http_url));
+			}
 		}
 		public virtual void HandlePOST (HTTPProcessor sp, StreamReader sr) {
 			
@@ -50,6 +53,8 @@ namespace WebBack
 		
 		private Stream inputStream;
 		public StreamWriter outputStream;
+		public BinaryWriter outputBinary;
+		private BufferedStream outputCore;
 		
 		public String http_method;
 		public String http_url;
@@ -84,7 +89,9 @@ namespace WebBack
 			inputStream = new BufferedStream(socket.GetStream());
 			
 			// we probably shouldn't be using a streamwriter for all output from handlers either
-			outputStream = new StreamWriter(new BufferedStream(socket.GetStream()));
+			outputCore = new BufferedStream(socket.GetStream());
+			outputStream = new StreamWriter(outputCore);
+			outputBinary = new BinaryWriter(outputCore);
 			try {
 				parseRequest();
 				readHeaders();
@@ -190,22 +197,31 @@ namespace WebBack
 		}
 		
 		public void writeSuccess(string content_type="text/html") {
-			outputStream.WriteLine("HTTP/1.0 200 OK");            
-			outputStream.WriteLine("Content-Type: " + content_type);
-			outputStream.WriteLine("Connection: close");
-			outputStream.WriteLine("");
+
+			WriteToClient("HTTP/1.0 200 OK");            
+			WriteToClient("Content-Type: " + content_type);
+			WriteToClient("Connection: close");
+			WriteToClient("");
 		}
 
 		public void writeFailure() {
-			outputStream.WriteLine("HTTP/1.0 404 File not found");
-			outputStream.WriteLine("Connection: close");
-			outputStream.WriteLine("");
+			WriteToClient("HTTP/1.0 404 File not found");
+			WriteToClient("Connection: close");
+			WriteToClient("");
 		}
 
 		public void writeSuccessOmitMIME () {
-			outputStream.WriteLine("HTTP/1.0 200 OK");            
-			outputStream.WriteLine("Connection: close");
-			outputStream.WriteLine("");
+			WriteToClient("HTTP/1.0 200 OK");            
+			WriteToClient("Connection: close");
+			WriteToClient("");
+		}
+		public void WriteToClient (string data, string Enc) {WriteToClient(data, Encoding.GetEncoding(Enc));}
+		public void WriteToClient (string data) {WriteToClient(data, Encoding.UTF8);}
+		public void WriteToClient (string data, Encoding Enc) {
+			WriteToClient(Enc.GetBytes(data+"\n"));
+		}
+		public void WriteToClient (byte[] data) {
+			outputBinary.Write(data);
 		}
 	}
 
@@ -213,25 +229,32 @@ namespace WebBack
 		//extension //MIME
 		public static Dictionary<string, string> defaultfiletypes = new Dictionary<string, string> {
 			//{"", ""},
-			{"htm", "html"},
-			{"html", "html"},
-			{"txt", "plain"},
+			{".gif", "image/gif"},
+			{".htm", "text/html"},
+			{".html", "text/html"},
+			{".jpeg", "image/jpeg"},
+			{".jpg", "image/jpeg"},
+			{".png", "image/png"},
+			{".txt", "text/plain"},
 		};
 		public Dictionary<string, string> filetypes;
 		private readonly HTTPProcessor HTTP;
 		public readonly string filename;
 		public readonly string filepath;
 		public readonly string totalpath;
-		public FileProcessor(HTTPProcessor sp, Dictionary<string,string> types = null) {
-			if (types == null) {this.filetypes = FileProcessor.defaultfiletypes;} else {this.filetypes = types;}
+		public FileProcessor(HTTPProcessor sp) : this(sp, Environment.CurrentDirectory, FileProcessor.defaultfiletypes) {}
+		public FileProcessor(HTTPProcessor sp, Dictionary<string,string> types) : this(sp, Environment.CurrentDirectory, types) {}
+		public FileProcessor(HTTPProcessor sp, string startingdirectory) : this(sp, startingdirectory, FileProcessor.defaultfiletypes) {}
+		public FileProcessor(HTTPProcessor sp, string startingdirectory, Dictionary<string,string> types) {
+			this.filetypes = types;
 			this.HTTP = sp;
-			string urlinfo = this.HTTP.http_url;
+			string urlinfo = sp.http_url;
 			string[] divurl = urlinfo.Split('/');
 			this.filename = divurl[divurl.Length-1];
-			this.filepath = Environment.CurrentDirectory;
+			this.filepath = startingdirectory;
 			if (divurl.Length > 2) {
 				string[] splitfilepath = new string[divurl.Length - 1];
-				splitfilepath[0] = Environment.CurrentDirectory;
+				splitfilepath[0] = startingdirectory;
 				for (int i=1;i<divurl.Length-1;i++) {splitfilepath[i] = divurl[i];}
 				this.filepath = Path.Combine(splitfilepath);
 			}
@@ -240,12 +263,15 @@ namespace WebBack
 		public bool Process () {
 			if (filename != "" && File.Exists(totalpath)) {
 				foreach (KeyValuePair<string, string> KVP in this.filetypes) {
-					if (filename.EndsWith("."+KVP.Key)) {
-						this.HTTP.writeSuccess(KVP.Value);
-						this.HTTP.outputStream.WriteLine(Encoding.UTF8.GetString(File.ReadAllBytes(totalpath)));
+					if (filename.ToLower().EndsWith(KVP.Key)) {
+						HTTP.writeSuccess(KVP.Value);
+						byte[] filedata = File.ReadAllBytes(totalpath);
+						HTTP.WriteToClient(filedata);
 						return true;
 					}
 				}
+				HTTP.writeSuccessOmitMIME();
+				HTTP.WriteToClient(File.ReadAllBytes(totalpath));
 			}
 			return false;
 		}
