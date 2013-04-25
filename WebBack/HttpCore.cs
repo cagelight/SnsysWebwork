@@ -7,6 +7,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading ;
 
+using WebFront;
+
 namespace WebBack
 {
 	public interface IServer {void Start(); void Run(); void HandleGET(HTTPProcessor sp); void HandlePOST(HTTPProcessor sp, StreamReader sr);}
@@ -16,9 +18,11 @@ namespace WebBack
 		public TcpListener tcpl; 
 		public Thread process;
 		public bool active = false;
+		public Dictionary<IPAddress, ClientAuthorizations> clientAuthorization;
 		public GenericServer(ISite insitelogic, IPAddress addr, ushort port){
 			sitelogic = insitelogic; 
 			tcpl = new TcpListener(addr, port);
+			clientAuthorization = new Dictionary<IPAddress, ClientAuthorizations>();
 		} 
 		public virtual void Run () {
 			while (this.active) {
@@ -37,13 +41,50 @@ namespace WebBack
 		}
 		public virtual void HandleGET(HTTPProcessor sp) {
 			FileProcessor FP = new FileProcessor(sp, Path.Combine(Environment.CurrentDirectory, "Assets"));
-			if (!FP.Process()) {
+			RestrictionInfo RI = sitelogic.IsURLRestricted(sp.http_url);
+			if (!RI || EvaluateClient(sp.clientip, RI.restrictionTitle)) {
+				if (!FP.Process()) {
+					sp.writeSuccess();
+					sp.WriteToClient(sitelogic.Generate(sp.http_host + sp.http_url));
+				}
+			} else {
 				sp.writeSuccess();
-				sp.WriteToClient(sitelogic.Generate(sp.http_host + sp.http_url));
+				sp.WriteToClient(Generic.SimpleAuth(RI.restrictionTitle,"http://"+sp.http_host+sp.http_url));
 			}
 		}
 		public virtual void HandlePOST (HTTPProcessor sp, StreamReader sr) {
-			
+			foreach (KeyValuePair<string,string> KVP in HTTPProcessor.ProcessPOST(sr.ReadToEnd())) {
+				if (!clientAuthorization.ContainsKey(sp.clientip)) {clientAuthorization.Add(sp.clientip, new ClientAuthorizations()); }
+				clientAuthorization[sp.clientip].Add(KVP.Key);
+			}
+			HandleGET(sp);
+		}
+
+		public virtual bool EvaluateClient (IPAddress addr, string authlevel) {
+			if (clientAuthorization.ContainsKey(addr) && clientAuthorization[addr].CheckAuth(authlevel)) {return true;}
+			return false;
+		}
+	}
+
+	public class ClientAuthorizations {
+		public Dictionary<string, DateTime> AuthList;
+		public ClientAuthorizations() {
+			AuthList = new Dictionary<string, DateTime>();
+		}
+		public void Add (string authlevel) {
+			if (!AuthList.ContainsKey(authlevel)) {this.AuthList.Add(authlevel, DateTime.Now);}
+			else {AuthList[authlevel] = DateTime.Now;}
+		}
+		public bool CheckAuth (string authlevel) {
+			if (AuthList.ContainsKey(authlevel)) {
+				if ((DateTime.Now - AuthList[authlevel]).Hours > 23) {
+					AuthList.Remove(authlevel);
+					return false;
+				} else {
+					return true;
+				}
+			}
+			return false;
 		}
 	}
 
@@ -60,12 +101,14 @@ namespace WebBack
 		public String http_url;
 		public String http_protocol_versionstring;
 		public string http_host;
+		public IPAddress clientip;
 		public Hashtable httpHeaders = new Hashtable();
 		
 		
 		private static int MAX_POST_SIZE = 10 * 1024 * 1024; // 10MB
 		
 		public HTTPProcessor(TcpClient s, IServer srv) {
+			this.clientip = ((IPEndPoint)s.Client.RemoteEndPoint).Address;
 			this.socket = s;
 			this.srv = srv;                   
 		}
@@ -132,7 +175,7 @@ namespace WebBack
 					return;
 				}
 				if (line.Substring(0,5) == "Host:") {
-					http_host = line.Substring(5);
+					http_host = line.Substring(6);
 				}
 				int separator = line.IndexOf(':');
 				if (separator == -1) {
@@ -222,6 +265,15 @@ namespace WebBack
 		}
 		public void WriteToClient (byte[] data) {
 			outputBinary.Write(data);
+		}
+
+		public static Dictionary<string,string> ProcessPOST (string POSTstring) {
+			Dictionary<string,string> R = new Dictionary<string,string>();
+			foreach (string i in POSTstring.Split('&')) {
+				string[] P = i.Split('=');
+				R.Add(P[0], P[1]);
+			}
+			return R;
 		}
 	}
 

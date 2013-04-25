@@ -37,4 +37,10 @@
     <Compile Include="WebBack\SiteCore.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="WebFront.csproj">
+      <Project>{37C18B25-B9E4-4395-84EB-00D239C6C104}</Project>
+      <Name>WebFront</Name>
+    </ProjectReference>
+  </ItemGroup>
 </Project>
