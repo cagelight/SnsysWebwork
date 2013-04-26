@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading ;
 
@@ -42,7 +43,7 @@ namespace WebBack
 		public virtual void HandleGET(HTTPProcessor sp) {
 			FileProcessor FP = new FileProcessor(sp, Path.Combine(Environment.CurrentDirectory, "Assets"));
 			RestrictionInfo RI = sitelogic.IsURLRestricted(sp.http_url);
-			if (!RI || EvaluateClient(sp.clientip, RI.restrictionTitle)) {
+			if (!RI || EvaluateClient(sp.clientip, sp.clientcookie,  RI.restrictionTitle)) {
 				if (!FP.Process()) {
 					sp.writeSuccess();
 					sp.WriteToClient(sitelogic.Generate(sp.http_host + sp.http_url));
@@ -53,38 +54,53 @@ namespace WebBack
 			}
 		}
 		public virtual void HandlePOST (HTTPProcessor sp, StreamReader sr) {
+			sp.write200();
+			sp.writeType("text/html");
+			Dictionary<string, bool> SF = new Dictionary<string, bool>();
 			foreach (KeyValuePair<string,string> KVP in HTTPProcessor.ProcessPOST(sr.ReadToEnd())) {
 				if (!clientAuthorization.ContainsKey(sp.clientip)) {clientAuthorization.Add(sp.clientip, new ClientAuthorizations()); }
-				clientAuthorization[sp.clientip].Add(KVP.Key);
+				if (sitelogic.IsLevelKeyValid(KVP.Key, KVP.Value)) {
+					SCookie nc = SCookie.GenerateNew(KVP.Key);
+					clientAuthorization[sp.clientip].Add(KVP.Key, nc.key);
+					sp.writeCookie(nc);
+					SF.Add(KVP.Key, true);
+				} else {
+					SF.Add(KVP.Key, false);
+				}
 			}
-			HandleGET(sp);
+			sp.writeClose();
+			foreach (KeyValuePair<string, bool> KVP in SF) {
+				sp.WriteToClient( HTML.Span(string.Format("Access to {0} {1}.", KVP.Key, KVP.Value?"Granted":"Denied")).ToString() );
+			}
 		}
 
-		public virtual bool EvaluateClient (IPAddress addr, string authlevel) {
-			if (clientAuthorization.ContainsKey(addr) && clientAuthorization[addr].CheckAuth(authlevel)) {return true;}
+		public virtual bool EvaluateClient (IPAddress addr, SCookie c, string authlevel) {
+			if (clientAuthorization.ContainsKey(addr) && c.key!=null && clientAuthorization[addr].CheckAuth(authlevel, c.key)) {return true;}
 			return false;
 		}
 	}
 
-	public class ClientAuthorizations {
-		public Dictionary<string, DateTime> AuthList;
-		public ClientAuthorizations() {
-			AuthList = new Dictionary<string, DateTime>();
-		}
-		public void Add (string authlevel) {
-			if (!AuthList.ContainsKey(authlevel)) {this.AuthList.Add(authlevel, DateTime.Now);}
-			else {AuthList[authlevel] = DateTime.Now;}
-		}
-		public bool CheckAuth (string authlevel) {
-			if (AuthList.ContainsKey(authlevel)) {
-				if ((DateTime.Now - AuthList[authlevel]).Hours > 23) {
-					AuthList.Remove(authlevel);
-					return false;
-				} else {
-					return true;
-				}
+	public class StringRandom {
+		public const string NumLet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+		public const string Num = "1234567890";
+		public const string Let = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		public const string LetL = "abcdefghijklmnopqrstuvwxyz";
+		public const string LetU = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		public static string GenerateNumLet (int length) {
+			Random r = new Random((int)DateTime.Now.Ticks);
+			char[] c = new char[length];
+			for (int i=0;i<length;i++) {
+				c[i] = NumLet[r.Next(0,NumLet.Length)];
 			}
-			return false;
+			return new string(c);
+		}
+		public static string GenerateUnicode (int length) {
+			Random r = new Random((int)DateTime.Now.Ticks);
+			byte[] b = new byte[length];
+			for (int i=0;i<length;i++) {
+				b[i] = (byte)r.Next(0,256);
+			}
+			return Encoding.Unicode.GetString(b);
 		}
 	}
 
@@ -102,6 +118,7 @@ namespace WebBack
 		public String http_protocol_versionstring;
 		public string http_host;
 		public IPAddress clientip;
+		public SCookie clientcookie;
 		public Hashtable httpHeaders = new Hashtable();
 		
 		
@@ -174,8 +191,12 @@ namespace WebBack
 					Console.WriteLine("got headers");
 					return;
 				}
-				if (line.Substring(0,5) == "Host:") {
+				if (line.StartsWith("Host:")) {
 					http_host = line.Substring(6);
+				}
+				if (line.StartsWith("Cookie:")) {
+					string[] t = line.Substring(8).Split('=');
+					clientcookie = new SCookie(t[0],t[1]);
 				}
 				int separator = line.IndexOf(':');
 				if (separator == -1) {
@@ -238,25 +259,35 @@ namespace WebBack
 			srv.HandlePOST(this, new StreamReader(ms));
 			
 		}
-		
-		public void writeSuccess(string content_type="text/html") {
 
-			WriteToClient("HTTP/1.0 200 OK");            
+		public void write200() {
+			WriteToClient("HTTP/1.0 200 OK"); 
+		}
+		public void writeType(string content_type="text/html") {
 			WriteToClient("Content-Type: " + content_type);
+		}
+		public void writeCookie(SCookie c) {
+			WriteToClient(String.Format("Set-Cookie: {0}={1}", c.name, c.key)); 
+		}
+		public void writeClose() {
 			WriteToClient("Connection: close");
 			WriteToClient("");
+		}
+		
+		public void writeSuccess(string content_type="text/html") {
+			write200();
+			writeType(content_type);
+			writeClose();
 		}
 
 		public void writeFailure() {
 			WriteToClient("HTTP/1.0 404 File not found");
-			WriteToClient("Connection: close");
-			WriteToClient("");
+			writeClose();
 		}
 
 		public void writeSuccessOmitMIME () {
-			WriteToClient("HTTP/1.0 200 OK");            
-			WriteToClient("Connection: close");
-			WriteToClient("");
+			write200();
+			writeClose();
 		}
 		public void WriteToClient (string data, string Enc) {WriteToClient(data, Encoding.GetEncoding(Enc));}
 		public void WriteToClient (string data) {WriteToClient(data, Encoding.UTF8);}
