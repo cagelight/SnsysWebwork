@@ -22,7 +22,7 @@ namespace WebBack
 			this.key = val;
 		}
 		public static SCookie GenerateNew (string name) {
-			return new SCookie(name, StringRandom.GenerateNumLet(16));
+			return new SCookie(name, StringRandom.GenerateNumLet(32));
 		}
 	}
 	public class ClientAuthorizations {
@@ -49,7 +49,7 @@ namespace WebBack
 			if (AuthList.ContainsKey(authlevel)) {
 				foreach (TimeKey TK in AuthList[authlevel]) {
 					if (TK.Key != key) {continue;} 
-					else if ((DateTime.Now - TK.DT).Seconds > 15) {
+					else if ((DateTime.Now - TK.DT).Minutes > 30) {
 						AuthList[authlevel].Remove(TK);
 						return false;
 					} else {

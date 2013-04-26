@@ -18,7 +18,10 @@ namespace SnsysUS
 		};
 		private static RestrictionInfo L1 = new RestrictionInfo(true, "L1");
 		public string Generate(params string[] parms) {
-			return "<html>"+HTML.Body( HTML.Title("Hey"), HTML.Span(String.Format("You're attempting to connect to: \"{0}\", which does not exist.", parms[0])) , HTML.Breakline() , HTML.Span(StringRandom.GenerateNumLet(16)) )+"</html>";
+			HTML.Webpage WP = new HTML.Webpage("Test Page");
+			WP.Head += HTML.Link().Rel("stylesheet").Href("http://snsys.us/snsys.css");
+			WP.Body += SnsysUSGeneric.TitleBar("Test Page");
+			return WP.ToString();
 		}
 
 		public RestrictionInfo IsURLRestricted (string url) {
