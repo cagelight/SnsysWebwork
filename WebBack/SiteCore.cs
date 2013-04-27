@@ -71,6 +71,6 @@ namespace WebBack
 		}
 	}
 
-	public interface ISite {string Generate(params string[] parms); RestrictionInfo IsURLRestricted(string url); bool IsLevelKeyValid(string l, string k);}
+	public interface ISite {string Generate(params string[] parms);}
 }
 

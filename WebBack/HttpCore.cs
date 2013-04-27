@@ -12,7 +12,7 @@ using WebFront;
 
 namespace WebBack
 {
-	public interface IServer {void Start(); void Run(); void HandleGET(HTTPProcessor sp); void HandlePOST(HTTPProcessor sp, StreamReader sr);}
+	public interface IServer {void Start(); void Run(); void HandleGET(HTTPProcessor sp); void HandlePOST(HTTPProcessor sp, StreamReader sr); RestrictionInfo IsURLRestricted(string url);  bool IsLevelKeyValid(string l, string k);}
 
 	public abstract class GenericServer : IServer {
 		public ISite sitelogic; 
@@ -41,10 +41,9 @@ namespace WebBack
 			this.process.Start();
 		}
 		public virtual void HandleGET(HTTPProcessor sp) {
-			FileProcessor FP = new FileProcessor(sp, Path.Combine(Environment.CurrentDirectory, "Assets"));
-			RestrictionInfo RI = sitelogic.IsURLRestricted(sp.http_url);
+			RestrictionInfo RI = IsURLRestricted(sp.http_url);
 			if (!RI || EvaluateClient(sp.clientip, sp.clientcookie,  RI.restrictionTitle)) {
-				if (!FP.Process()) {
+				if (!HandleFiles(sp)) {
 					sp.writeSuccess();
 					sp.WriteToClient(sitelogic.Generate(sp.http_host + sp.http_url));
 				}
@@ -59,7 +58,7 @@ namespace WebBack
 			Dictionary<string, bool> SF = new Dictionary<string, bool>();
 			foreach (KeyValuePair<string,string> KVP in HTTPProcessor.ProcessPOST(sr.ReadToEnd())) {
 				if (!clientAuthorization.ContainsKey(sp.clientip)) {clientAuthorization.Add(sp.clientip, new ClientAuthorizations()); }
-				if (sitelogic.IsLevelKeyValid(KVP.Key, KVP.Value)) {
+				if (IsLevelKeyValid(KVP.Key, KVP.Value)) {
 					SCookie nc = SCookie.GenerateNew(KVP.Key);
 					clientAuthorization[sp.clientip].Add(KVP.Key, nc.key);
 					sp.writeCookie(nc);
@@ -73,9 +72,20 @@ namespace WebBack
 				sp.WriteToClient( HTML.Span(string.Format("Access to {0} {1}.", KVP.Key, KVP.Value?"Granted":"Denied")).ToString() );
 			}
 		}
+		public virtual bool HandleFiles (HTTPProcessor sp) {
+			FileProcessor FP = new FileProcessor(sp, Path.Combine(Environment.CurrentDirectory, "Assets"));
+			return FP.Process(FileProcessor.METHOD.GREY);
+		}
 
 		public virtual bool EvaluateClient (IPAddress addr, SCookie c, string authlevel) {
 			if (clientAuthorization.ContainsKey(addr) && c.key!=null && clientAuthorization[addr].CheckAuth(authlevel, c.key)) {return true;}
+			return false;
+		}
+		public virtual RestrictionInfo IsURLRestricted (string url) {
+			return new RestrictionInfo(false, null);
+		}
+		
+		public virtual bool IsLevelKeyValid (string level, string key) {
 			return false;
 		}
 	}
@@ -315,16 +325,19 @@ namespace WebBack
 			{".gif", "image/gif"},
 			{".htm", "text/html"},
 			{".html", "text/html"},
+			{".ico", "image/x-icon"},
 			{".jpeg", "image/jpeg"},
 			{".jpg", "image/jpeg"},
 			{".png", "image/png"},
 			{".txt", "text/plain"},
+			{".zip", "application/zip"},
 		};
 		public Dictionary<string, string> filetypes;
 		private readonly HTTPProcessor HTTP;
 		public readonly string filename;
 		public readonly string filepath;
 		public readonly string totalpath;
+		public List<string> processMethodStrings;
 		public FileProcessor(HTTPProcessor sp) : this(sp, Environment.CurrentDirectory, FileProcessor.defaultfiletypes) {}
 		public FileProcessor(HTTPProcessor sp, Dictionary<string,string> types) : this(sp, Environment.CurrentDirectory, types) {}
 		public FileProcessor(HTTPProcessor sp, string startingdirectory) : this(sp, startingdirectory, FileProcessor.defaultfiletypes) {}
@@ -343,8 +356,9 @@ namespace WebBack
 			}
 			this.totalpath = Path.Combine(filepath, filename);
 		}
-		public bool Process () {
-			if (filename != "" && File.Exists(totalpath)) {
+		public bool Process (METHOD M) {
+			if (M != METHOD.GREY && processMethodStrings == null) {throw new NullReferenceException();}
+			if (filename != "" && File.Exists(totalpath) && ListCheck(M)) {
 				foreach (KeyValuePair<string, string> KVP in this.filetypes) {
 					if (filename.ToLower().EndsWith(KVP.Key)) {
 						HTTP.writeSuccess(KVP.Value);
@@ -355,8 +369,47 @@ namespace WebBack
 				}
 				HTTP.writeSuccessOmitMIME();
 				HTTP.WriteToClient(File.ReadAllBytes(totalpath));
+				return true;
 			}
 			return false;
+		}
+		public enum METHOD {WHITELIST_CONTAINS, WHITELIST_IS, WHITELIST_BEGINS, WHITELIST_ENDS, BLACKLIST_CONTAINS, BLACKLIST_IS, BLACKLIST_BEGINS, BLACKLIST_ENDS, GREY}
+		private bool ListCheck (METHOD M) {
+			if (M == METHOD.BLACKLIST_BEGINS || M == METHOD.BLACKLIST_ENDS ||M == METHOD.BLACKLIST_CONTAINS ||M == METHOD.BLACKLIST_IS) {
+				switch (M) {
+				case METHOD.BLACKLIST_BEGINS:
+					foreach (string s in processMethodStrings) {if(filename.StartsWith(s)){return false;}continue;}
+					break;
+				case METHOD.BLACKLIST_ENDS:
+					foreach (string s in processMethodStrings) {if(filename.EndsWith(s)){return false;}continue;}
+					break;
+				case METHOD.BLACKLIST_CONTAINS:
+					foreach (string s in processMethodStrings) {if(filename.Contains(s)){return false;}continue;}
+					break;
+				case METHOD.BLACKLIST_IS:
+					foreach (string s in processMethodStrings) {if(filename == s){return false;}continue;}
+					break;
+				}
+				return true;
+			} else if (M == METHOD.WHITELIST_BEGINS || M == METHOD.WHITELIST_ENDS ||M == METHOD.WHITELIST_CONTAINS ||M == METHOD.WHITELIST_IS) { 
+				switch (M) {
+				case METHOD.WHITELIST_BEGINS:
+					foreach (string s in processMethodStrings) {if(filename.StartsWith(s)){return true;}continue;}
+					break;
+				case METHOD.WHITELIST_ENDS:
+					foreach (string s in processMethodStrings) {if(filename.EndsWith(s)){return true;}continue;}
+					break;
+				case METHOD.WHITELIST_CONTAINS:
+					foreach (string s in processMethodStrings) {if(filename.Contains(s)){return true;}continue;}
+					break;
+				case METHOD.WHITELIST_IS:
+					foreach (string s in processMethodStrings) {if(filename == s){return true;}continue;}
+					break;
+				}
+				return false;
+			} else {
+				return true;
+			}
 		}
 	}
 }
