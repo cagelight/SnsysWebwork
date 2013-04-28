@@ -35,6 +35,7 @@
     <Compile Include="WebBack\Properties\AssemblyInfo.cs" />
     <Compile Include="WebBack\HttpCore.cs" />
     <Compile Include="WebBack\SiteCore.cs" />
+    <Compile Include="WebBack\Userstuff.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

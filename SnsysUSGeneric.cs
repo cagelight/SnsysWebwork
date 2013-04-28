@@ -12,6 +12,10 @@ namespace SnsysUS
 			if (subtitle != null) {MD += HTML.Div( HTML.Span(subtitle).Class("light") ).Class("headsub");}
 			return MD;
 		}
+		public static HTMLContent SnsysSub (string data, string title = null, string tag = null) {
+			HTMLContent MD = HTML.Div().Class("galsub");
+			MD += HTML.Div( HTML.Div((title!=null||tag!=null)?HTML.Attribute(title!=null?HTML.H3(title).Class("dark"):null).ID(tag!=null?tag:title):null).Class("subtop") , HTML.Div(HTML.Span(data).Class("light")).Class("subbody") ).Class("sub2");
+			return MD;
+		}
 	}
 }
-

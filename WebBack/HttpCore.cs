@@ -12,83 +12,7 @@ using WebFront;
 
 namespace WebBack
 {
-	public interface IServer {void Start(); void Run(); void HandleGET(HTTPProcessor sp); void HandlePOST(HTTPProcessor sp, StreamReader sr); RestrictionInfo IsURLRestricted(string url);  bool IsLevelKeyValid(string l, string k);}
-
-	public abstract class GenericServer : IServer {
-		public ISite sitelogic; 
-		public TcpListener tcpl; 
-		public Thread process;
-		public bool active = false;
-		public Dictionary<IPAddress, ClientAuthorizations> clientAuthorization;
-		public GenericServer(ISite insitelogic, IPAddress addr, ushort port){
-			sitelogic = insitelogic; 
-			tcpl = new TcpListener(addr, port);
-			clientAuthorization = new Dictionary<IPAddress, ClientAuthorizations>();
-		} 
-		public virtual void Run () {
-			while (this.active) {
-				TcpClient tcpc = tcpl.AcceptTcpClient();
-				HTTPProcessor processor = new HTTPProcessor(tcpc, this);
-				Thread handleClient = new Thread(new ThreadStart(processor.process));
-				handleClient.Start(); 
-				Thread.Sleep(1);
-			}
-		}
-		public virtual void Start () {
-			this.tcpl.Start();
-			this.active = true;
-			this.process = new Thread(Run);
-			this.process.Start();
-		}
-		public virtual void HandleGET(HTTPProcessor sp) {
-			RestrictionInfo RI = IsURLRestricted(sp.http_url);
-			if (!RI || EvaluateClient(sp.clientip, sp.clientcookie,  RI.restrictionTitle)) {
-				if (!HandleFiles(sp)) {
-					sp.writeSuccess();
-					sp.WriteToClient(sitelogic.Generate(sp.http_host + sp.http_url));
-				}
-			} else {
-				sp.writeSuccess();
-				sp.WriteToClient(Generic.SimpleAuth(RI.restrictionTitle,"http://"+sp.http_host+sp.http_url));
-			}
-		}
-		public virtual void HandlePOST (HTTPProcessor sp, StreamReader sr) {
-			sp.write200();
-			sp.writeType("text/html");
-			Dictionary<string, bool> SF = new Dictionary<string, bool>();
-			foreach (KeyValuePair<string,string> KVP in HTTPProcessor.ProcessPOST(sr.ReadToEnd())) {
-				if (!clientAuthorization.ContainsKey(sp.clientip)) {clientAuthorization.Add(sp.clientip, new ClientAuthorizations()); }
-				if (IsLevelKeyValid(KVP.Key, KVP.Value)) {
-					SCookie nc = SCookie.GenerateNew(KVP.Key);
-					clientAuthorization[sp.clientip].Add(KVP.Key, nc.key);
-					sp.writeCookie(nc);
-					SF.Add(KVP.Key, true);
-				} else {
-					SF.Add(KVP.Key, false);
-				}
-			}
-			sp.writeClose();
-			foreach (KeyValuePair<string, bool> KVP in SF) {
-				sp.WriteToClient( HTML.Span(string.Format("Access to {0} {1}.", KVP.Key, KVP.Value?"Granted":"Denied")).ToString() );
-			}
-		}
-		public virtual bool HandleFiles (HTTPProcessor sp) {
-			FileProcessor FP = new FileProcessor(sp, Path.Combine(Environment.CurrentDirectory, "Assets"));
-			return FP.Process(FileProcessor.METHOD.GREY);
-		}
-
-		public virtual bool EvaluateClient (IPAddress addr, SCookie c, string authlevel) {
-			if (clientAuthorization.ContainsKey(addr) && c.key!=null && clientAuthorization[addr].CheckAuth(authlevel, c.key)) {return true;}
-			return false;
-		}
-		public virtual RestrictionInfo IsURLRestricted (string url) {
-			return new RestrictionInfo(false, null);
-		}
-		
-		public virtual bool IsLevelKeyValid (string level, string key) {
-			return false;
-		}
-	}
+	public interface IServer {void Start(); void Run(); void HandleGET(HTTPProcessor sp); void HandlePOST(HTTPProcessor sp, StreamReader sr);}
 
 	public class StringRandom {
 		public const string NumLet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
@@ -322,6 +246,7 @@ namespace WebBack
 		//extension //MIME
 		public static Dictionary<string, string> defaultfiletypes = new Dictionary<string, string> {
 			//{"", ""},
+			{".css", "text/css"},
 			{".gif", "image/gif"},
 			{".htm", "text/html"},
 			{".html", "text/html"},
@@ -356,7 +281,7 @@ namespace WebBack
 			}
 			this.totalpath = Path.Combine(filepath, filename);
 		}
-		public bool Process (METHOD M) {
+		public bool Process (METHOD M, bool sendunknowntypes = true) {
 			if (M != METHOD.GREY && processMethodStrings == null) {throw new NullReferenceException();}
 			if (filename != "" && File.Exists(totalpath) && ListCheck(M)) {
 				foreach (KeyValuePair<string, string> KVP in this.filetypes) {
@@ -367,9 +292,11 @@ namespace WebBack
 						return true;
 					}
 				}
-				HTTP.writeSuccessOmitMIME();
-				HTTP.WriteToClient(File.ReadAllBytes(totalpath));
-				return true;
+				if (sendunknowntypes) {
+					HTTP.writeSuccessOmitMIME();
+					HTTP.WriteToClient(File.ReadAllBytes(totalpath));
+					return true;
+				}
 			}
 			return false;
 		}

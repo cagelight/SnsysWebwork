@@ -16,8 +16,9 @@ namespace SnsysUS
 
 		public string Generate(params string[] parms) {
 			HTML.Webpage WP = new HTML.Webpage("Test Page");
-			WP.Head += HTML.Link().Rel("stylesheet").Href("http://snsys.us/snsys.css");
+			WP.Head += HTML.Link().Rel("stylesheet").Href("snsys.css");
 			WP.Body += SnsysUSGeneric.TitleBar("Test Page");
+			WP.Body += SnsysUSGeneric.SnsysSub("Testing a sub.", "Test Title");
 			return WP.ToString();
 		}
 	}

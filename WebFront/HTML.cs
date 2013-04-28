@@ -44,7 +44,7 @@ namespace WebFront
 			string c = "";
 			string a = "";
 			foreach (IElement e in contents) {
-				c += e.ToString();
+				if (e!=null) {c += e.ToString();}
 			}
 			foreach (KeyValuePair<string, string> KVP in attributes) {
 				a += String.Format(" {0}=\"{1}\"", KVP.Key, KVP.Value);
