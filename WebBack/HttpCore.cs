@@ -232,13 +232,19 @@ namespace WebBack
 			outputBinary.Write(data);
 		}
 
-		public static Dictionary<string,string> ProcessPOST (string POSTstring) {
-			Dictionary<string,string> R = new Dictionary<string,string>();
+		public static Dictionary<string,Dictionary<string,string>> ProcessPOST (string POSTstring) {
+			Dictionary<string,Dictionary<string,string>> typeDictionary = new Dictionary<string,Dictionary<string,string>>();
+			string curtype = "UNSET";
 			foreach (string i in POSTstring.Split('&')) {
 				string[] P = i.Split('=');
-				R.Add(P[0], P[1]);
+				if (P[0] == "POSTType") {
+					curtype = P[1];
+					continue;
+				}
+				if (!typeDictionary.ContainsKey(curtype)){typeDictionary.Add(curtype, new Dictionary<string, string>());}
+				typeDictionary[curtype].Add(P[0],P[1]);
 			}
-			return R;
+			return typeDictionary;
 		}
 	}
 

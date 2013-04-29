@@ -63,13 +63,25 @@ namespace SnsysUS
 			sp.write200();
 			sp.writeType("text/html");
 			List<string> responseText = new List<string>();
-			foreach (KeyValuePair<string,string> KVP in HTTPProcessor.ProcessPOST(sr.ReadToEnd())) {
-				if (!clientAuthorization.ContainsKey(sp.clientip)) {clientAuthorization.Add(sp.clientip, new ClientAuthorizations()); }
-				if (IsLevelKeyValid(KVP.Key, KVP.Value)) {
-					SCookie nc = SCookie.GenerateNew(KVP.Key);
-					clientAuthorization[sp.clientip].Add(KVP.Key, nc.key);
-					sp.writeCookie(nc);
-				} else {
+			foreach (KeyValuePair<string,Dictionary<string,string>> MKVP in HTTPProcessor.ProcessPOST(sr.ReadToEnd())) {
+				switch (MKVP.Key) {
+				case "SAUTH":
+					foreach (KeyValuePair<string,string> KVP in MKVP.Value) {
+						if (!clientAuthorization.ContainsKey(sp.clientip)) {clientAuthorization.Add(sp.clientip, new ClientAuthorizations()); }
+						if (IsLevelKeyValid(KVP.Key, KVP.Value)) {
+							SCookie nc = SCookie.GenerateNew(KVP.Key);
+							clientAuthorization[sp.clientip].Add(KVP.Key, nc.key);
+							sp.writeCookie(nc);
+						}
+					}
+					break;
+				default:
+					string errstring = "";
+					foreach (KeyValuePair<string,string> E in MKVP.Value) {
+						errstring += String.Format("{0}={1}\n", E.Key, E.Value);
+					}
+					Console.WriteLine(String.Format("An unknown POST request type was made: {0}, containing:\n {1}", MKVP.Key, errstring));
+					break;
 				}
 			}
 			sp.writeClose();

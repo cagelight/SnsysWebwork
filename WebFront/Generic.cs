@@ -5,7 +5,11 @@ namespace WebFront
 	public class Generic
 	{
 		public static string SimpleAuth (string authname, string returnurl) {
-			return HTML.Form( HTML.Input().Type("text").Name(authname) , HTML.Input().Type("submit").Value("Authorize") ).Action(returnurl).Method("post").ToString();
+			HTMLContent form = HTML.Form().Action(returnurl).Method("post");
+			form += HTML.Input().Type("hidden").Name("POSTType").Value("SAUTH");
+			form += HTML.Input().Type("text").Name(authname);
+			form += HTML.Input().Type("submit").Value("Authorize");
+			return form.ToString();
 		}
 	}
 }
