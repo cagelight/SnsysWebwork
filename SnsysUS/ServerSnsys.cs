@@ -72,6 +72,9 @@ namespace SnsysUS
 							SCookie nc = SCookie.GenerateNew(KVP.Key);
 							clientAuthorization[sp.clientip].Add(KVP.Key, nc.key);
 							sp.writeCookie(nc);
+							responseText.Add(String.Format("Authorization \"{0}\" Granted.", KVP.Key));
+						} else {
+							responseText.Add(String.Format("Authorization \"{0}\" Denied.", KVP.Key));
 						}
 					}
 					break;
@@ -80,11 +83,21 @@ namespace SnsysUS
 					foreach (KeyValuePair<string,string> E in MKVP.Value) {
 						errstring += String.Format("{0}={1}\n", E.Key, E.Value);
 					}
-					Console.WriteLine(String.Format("An unknown POST request type was made: {0}, containing:\n {1}", MKVP.Key, errstring));
+					string errtext = String.Format("An unknown POST request type was made: {0}, containing: \n{1}", MKVP.Key, errstring);
+					responseText.Add(errtext); Console.WriteLine(errtext);
 					break;
 				}
 			}
 			sp.writeClose();
+			HTML.Webpage RC = new HTML.Webpage("POST");
+			HTMLContent MDV = HTML.Div();
+			foreach (string st in responseText) {
+				MDV += HTML.Span(st);
+				MDV += HTML.Breakline();
+			}
+			MDV += HTML.Attribute( new TextElement("Click here to access the requested content.") ).Href(sp.http_host + sp.http_url);
+			RC.Body += MDV;
+			sp.WriteToClient(RC.ToString());
 		}
 		public bool HandleFiles (HTTPProcessor sp) {
 			FileProcessor FP = new FileProcessor(sp, Path.Combine(Environment.CurrentDirectory, "Assets"));

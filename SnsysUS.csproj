@@ -35,7 +35,7 @@
     <Compile Include="SnsysUS\Properties\AssemblyInfo.cs" />
     <Compile Include="SnsysUS\ServerSnsys.cs" />
     <Compile Include="SnsysUS\SiteSnsys.cs" />
-    <Compile Include="SnsysUSGeneric.cs" />
+    <Compile Include="SnsysUS\SnsysUSGeneric.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

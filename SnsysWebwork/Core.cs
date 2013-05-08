@@ -13,11 +13,15 @@ namespace SnsysWebwork
 {
 	public class Executor {
 		public static int Main(String[] args) {
-			Console.WriteLine((new SnsysUSWeb()).Generate("URLGOESHERE"));
 			SnsysUSServer TS = new SnsysUSServer(IPAddress.Any, 8080);
 			TS.Start();
 			while (true) {
-				Console.ReadLine();
+				string instr = Console.ReadLine();
+				string[] instrS = instr.Split(' ');
+				switch (instrS[0].ToUpper()) {
+				case "EXIT":
+					return 0;
+				}
 			}
 		}
 		
