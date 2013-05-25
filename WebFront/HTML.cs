@@ -14,6 +14,7 @@ namespace WebFront
 	public class HTMLContent : IElement {
 		public readonly string type;
 		public Dictionary<string, string> attributes = new Dictionary<string, string>();
+		public Dictionary<string, string> styles = new Dictionary<string, string>();
 		public List<IElement> contents = new List<IElement>();
 		public HTMLContent (string type, params IElement[] cIn) {
 			this.type = type;
@@ -40,6 +41,16 @@ namespace WebFront
 			}
 			return this;
 		}
+		public HTMLContent Style (params Style[] instyles) {
+			foreach (Style S in instyles) {
+				if (!styles.ContainsKey(S.key)) {
+					styles.Add(S.key, S.val);
+				} else {
+					styles[S.key] = S.val;
+				}
+			}
+			return this;
+		}
 		public override string ToString (){
 			string c = "";
 			string a = "";
@@ -48,6 +59,13 @@ namespace WebFront
 			}
 			foreach (KeyValuePair<string, string> KVP in attributes) {
 				a += String.Format(" {0}=\"{1}\"", KVP.Key, KVP.Value);
+			}
+			if (styles.Count > 0) {
+				string s = "";
+				foreach (KeyValuePair<string,string> KVP in styles) {
+					s += String.Format("{0}:{1};", KVP.Key, KVP.Value);
+				}
+				a += String.Format(" style=\"{0}\"", s);
 			}
 			return String.Format("<{0}{2}>{1}</{0}>", type, c, a);
 		}
@@ -58,6 +76,13 @@ namespace WebFront
 			string a = "";
 			foreach (KeyValuePair<string, string> KVP in attributes) {
 				a += String.Format(" {0}=\"{1}\"", KVP.Key, KVP.Value);
+			}
+			if (styles.Count > 0) {
+				string s = "";
+				foreach (KeyValuePair<string,string> KVP in styles) {
+					s += String.Format("{0}:{1};", KVP.Key, KVP.Value);
+				}
+				a += String.Format(" style=\"{0}\"", s);
 			}
 			return String.Format("<{0}{1}>", type, a);
 		}

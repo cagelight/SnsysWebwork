@@ -71,6 +71,66 @@ namespace WebBack
 		}
 	}
 
-	public interface ISite {string Generate(params string[] parms);}
-}
+    public struct ArgumentPair {
+        public string Key { get { return this.KVP.Key; } }
+        public string Value { get { return this.KVP.Value; } }
+        private KeyValuePair<string, string> KVP;
+        public ArgumentPair (string Key, string Value) {
+            this.KVP = new KeyValuePair<string, string> (Key, Value);
+        }
+        public ArgumentPair(KeyValuePair<string,string> KVP) {
+            this.KVP = KVP;
+        }
+        public static implicit operator ArgumentPair(KeyValuePair<string,string> KVP) {
+            return new ArgumentPair(KVP);
+        }
+        public static implicit operator KeyValuePair<string, string>(ArgumentPair AP) {
+            return new KeyValuePair<string, string>(AP.Key, AP.Value);
+        }
+    }
 
+    public static class ArgumentHelper {
+        public static List<ArgumentPair> Organize(string BaseURL, out string NewURL) {
+            if (!BaseURL.Contains("?")) { NewURL = BaseURL; return new List<ArgumentPair>(); }
+            string[] ArgSep = BaseURL.Split('?');
+            NewURL = ArgSep[0];
+            List<ArgumentPair> AP = new List<ArgumentPair>();
+            if (!ArgSep[1].Contains("&")) {
+                try {
+                    string[] S = ArgSep[1].Split('=');
+                    AP.Add(new ArgumentPair(S[0], S[1]));
+                } catch { }
+            } else {
+                string[] Args = ArgSep[1].Split('&');
+                foreach (string s in Args) {
+                    try {
+                        string[] S = s.Split('=');
+                        AP.Add(new ArgumentPair(S[0], S[1]));
+                    } catch { }
+                }
+            }
+            return AP;
+        }
+    }
+
+    public struct SitePass {
+        public string Host;
+        public string Path;
+        public string URL {
+            get {
+                return Host + Path;
+            }
+        }
+        public string TotalURL {
+            get {
+                return "http://" + Host + Path;
+            }
+        }
+        public SitePass(string Website, string Path) {
+            this.Host = Website;
+            this.Path = Path;
+        }
+    }
+
+    public interface ISite { string Generate(SitePass URLInfo, params ArgumentPair[] args);}
+}

@@ -51,8 +51,10 @@ namespace SnsysUS
 			RestrictionInfo RI = IsURLRestricted(sp.http_url);
 			if (!RI || EvaluateClient(sp.clientip, sp.clientcookie,  RI.restrictionTitle)) {
 				if (!HandleFiles(sp)) {
-					sp.writeSuccess();
-					sp.WriteToClient(sitelogic.Generate(sp.http_host + sp.http_url));
+                    SitePass SP = new SitePass(sp.http_host, sp.http_url);
+                    List<ArgumentPair> AP = ArgumentHelper.Organize(SP.Path, out SP.Path);
+                    sp.writeSuccess();
+                    sp.WriteToClient(sitelogic.Generate(SP, AP.ToArray()));
 				}
 			} else {
 				sp.writeSuccess();
@@ -67,7 +69,7 @@ namespace SnsysUS
 				switch (MKVP.Key) {
 				case "SAUTH":
 					foreach (KeyValuePair<string,string> KVP in MKVP.Value) {
-						if (!clientAuthorization.ContainsKey(sp.clientip)) {clientAuthorization.Add(sp.clientip, new ClientAuthorizations()); }
+						if (!clientAuthorization.ContainsKey(sp.clientip)) { clientAuthorization.Add(sp.clientip, new ClientAuthorizations()); }
 						if (IsLevelKeyValid(KVP.Key, KVP.Value)) {
 							SCookie nc = SCookie.GenerateNew(KVP.Key);
 							clientAuthorization[sp.clientip].Add(KVP.Key, nc.key);
@@ -90,12 +92,12 @@ namespace SnsysUS
 			}
 			sp.writeClose();
 			HTML.Webpage RC = new HTML.Webpage("POST");
-			HTMLContent MDV = HTML.Div();
+			HTMLContent MDV = HTML.Div().Style(Style.BackgroundColor(HexColor.Red));
 			foreach (string st in responseText) {
 				MDV += HTML.Span(st);
 				MDV += HTML.Breakline();
 			}
-			MDV += HTML.Attribute( new TextElement("Click here to access the requested content.") ).Href(sp.http_host + sp.http_url);
+			MDV += HTML.Attribute( new TextElement("Click here to attempt access.") ).Href("http://" + sp.http_host + sp.http_url);
 			RC.Body += MDV;
 			sp.WriteToClient(RC.ToString());
 		}

@@ -13,15 +13,14 @@ using WebFront;
 namespace SnsysUS
 {
 	public class SnsysUSWeb : ISite {
-
-		public string Generate(params string[] parms) {
+		public string Generate(SitePass SP, params ArgumentPair[] args) {
 			HTML.Webpage WP = new HTML.Webpage("Test Page");
 			WP.Head += HTML.Link().Rel("stylesheet").Href("/snsys.css");
-			if (parms.Length >= 2 && parms[1]!=null) {WP.Body += HTML.Div( HTML.Span(parms[1]) );}
-			WP.Body += SnsysUSGeneric.TitleBar("Test Page");
-			WP.Body += SnsysUSGeneric.SnsysSub("Testing a sub.", "Test Title");
+			WP.Body += SnsysUSGeneric.TitleBar(SP.Path, SP.TotalURL);
+            foreach (ArgumentPair AP in args) {
+                WP.Body += SnsysUSGeneric.SnsysSub(AP.Value, AP.Key);
+            }
 			return WP.ToString();
 		}
 	}
 }
-
