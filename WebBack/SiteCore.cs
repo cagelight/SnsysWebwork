@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
+using WebFront;
+
 namespace WebBack
 {
 	public struct RestrictionInfo {
@@ -71,41 +73,23 @@ namespace WebBack
 		}
 	}
 
-    public struct ArgumentPair {
-        public string Key { get { return this.KVP.Key; } }
-        public string Value { get { return this.KVP.Value; } }
-        private KeyValuePair<string, string> KVP;
-        public ArgumentPair (string Key, string Value) {
-            this.KVP = new KeyValuePair<string, string> (Key, Value);
-        }
-        public ArgumentPair(KeyValuePair<string,string> KVP) {
-            this.KVP = KVP;
-        }
-        public static implicit operator ArgumentPair(KeyValuePair<string,string> KVP) {
-            return new ArgumentPair(KVP);
-        }
-        public static implicit operator KeyValuePair<string, string>(ArgumentPair AP) {
-            return new KeyValuePair<string, string>(AP.Key, AP.Value);
-        }
-    }
-
     public static class ArgumentHelper {
-        public static List<ArgumentPair> Organize(string BaseURL, out string NewURL) {
-            if (!BaseURL.Contains("?")) { NewURL = BaseURL; return new List<ArgumentPair>(); }
+        public static Dictionary<string,string> Organize(string BaseURL, out string NewURL) {
+            if (!BaseURL.Contains("?")) { NewURL = BaseURL; return new Dictionary<string, string>(); }
             string[] ArgSep = BaseURL.Split('?');
             NewURL = ArgSep[0];
-            List<ArgumentPair> AP = new List<ArgumentPair>();
+            Dictionary<string, string> AP = new Dictionary<string, string>();
             if (!ArgSep[1].Contains("&")) {
                 try {
                     string[] S = ArgSep[1].Split('=');
-                    AP.Add(new ArgumentPair(S[0], S[1]));
+                    AP[S[0]] = S[1];
                 } catch { }
             } else {
                 string[] Args = ArgSep[1].Split('&');
                 foreach (string s in Args) {
                     try {
                         string[] S = s.Split('=');
-                        AP.Add(new ArgumentPair(S[0], S[1]));
+                        AP[S[0]] = S[1];
                     } catch { }
                 }
             }
@@ -126,11 +110,11 @@ namespace WebBack
                 return "http://" + Host + Path;
             }
         }
-        public SitePass(string Website, string Path) {
-            this.Host = Website;
+        public SitePass(string Host, string Path) {
+            this.Host = Host;
             this.Path = Path;
         }
     }
 
-    public interface ISite { string Generate(SitePass URLInfo, params ArgumentPair[] args);}
+    //public interface ISite { HTML.Webpage Generate(SitePass URLInfo, Dictionary<string, string> args);}
 }

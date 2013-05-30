@@ -18,13 +18,12 @@ namespace SnsysUS
 			{"L1","DF43D66DE1590F605FCACE63862B73030149931731E914D0A6D1C03571AE3CA83010DDE35865D63EF14B83504DEE4D58846A78F5DC71E1A69C9C68A4CC899C38"}
 		};
 		private static RestrictionInfo L1 = new RestrictionInfo(true, "L1");
-		public ISite sitelogic; 
+        public SnsysUSWeb sitelogic = new SnsysUSWeb();
 		public TcpListener tcpl; 
 		public Thread process;
 		public bool active = false;
 		public Dictionary<IPAddress, ClientAuthorizations> clientAuthorization;
 		public SnsysUSServer(IPAddress addr, ushort port){
-			sitelogic = new SnsysUSWeb(); 
 			tcpl = new TcpListener(addr, port);
 			clientAuthorization = new Dictionary<IPAddress, ClientAuthorizations>();
 		} 
@@ -48,13 +47,13 @@ namespace SnsysUS
 			this.process.Start();
 		}
 		public void HandleGET(HTTPProcessor sp) {
-			RestrictionInfo RI = IsURLRestricted(sp.http_url);
+            RestrictionInfo RI = IsURLRestricted(sp.http_url);
 			if (!RI || EvaluateClient(sp.clientip, sp.clientcookie,  RI.restrictionTitle)) {
 				if (!HandleFiles(sp)) {
                     SitePass SP = new SitePass(sp.http_host, sp.http_url);
-                    List<ArgumentPair> AP = ArgumentHelper.Organize(SP.Path, out SP.Path);
+                    Dictionary<string,string> AP = ArgumentHelper.Organize(SP.Path, out SP.Path);
                     sp.writeSuccess();
-                    sp.WriteToClient(sitelogic.Generate(SP, AP.ToArray()));
+                    sp.WriteToClient(sitelogic.Generate(SP, AP).ToString());
 				}
 			} else {
 				sp.writeSuccess();
@@ -92,10 +91,10 @@ namespace SnsysUS
 			}
 			sp.writeClose();
 			HTML.Webpage RC = new HTML.Webpage("POST");
-			HTMLContent MDV = HTML.Div().Style(Style.BackgroundColor(HexColor.Red));
+			HTMLContent MDV = HTML.Div().Style(Style.BackgroundColor(new HexColor(192,192,255)));
 			foreach (string st in responseText) {
 				MDV += HTML.Span(st);
-				MDV += HTML.Breakline();
+				MDV += HTML.Breakline;
 			}
 			MDV += HTML.Attribute( new TextElement("Click here to attempt access.") ).Href("http://" + sp.http_host + sp.http_url);
 			RC.Body += MDV;
@@ -103,8 +102,8 @@ namespace SnsysUS
 		}
 		public bool HandleFiles (HTTPProcessor sp) {
 			FileProcessor FP = new FileProcessor(sp, Path.Combine(Environment.CurrentDirectory, "Assets"));
-			FP.processMethodStrings = new List<string>(){"5"};
-			return FP.Process(FileProcessor.METHOD.BLACKLIST_CONTAINS, false);
+			FP.processMethodStrings = new List<string>(){"RESTRICTED"};
+			return FP.Process(FileProcessor.METHOD.BLACKLIST_CONTAINS, false, false);
 		}
 		
 		public bool EvaluateClient (IPAddress addr, SCookie c, string authlevel) {

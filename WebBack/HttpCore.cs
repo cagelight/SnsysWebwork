@@ -14,9 +14,9 @@ namespace WebBack
 {
 	public interface IServer {void Start(); void Run(); void HandleGET(HTTPProcessor sp); void HandlePOST(HTTPProcessor sp, StreamReader sr);}
 
-	public class StringRandom {
+	public static class StringRandom {
+        public const string Num = "1234567890";
 		public const string NumLet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-		public const string Num = "1234567890";
 		public const string Let = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		public const string LetL = "abcdefghijklmnopqrstuvwxyz";
 		public const string LetU = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -37,6 +37,17 @@ namespace WebBack
 			return Encoding.Unicode.GetString(b);
 		}
 	}
+
+    public static class URLOperations {
+        public static string Decode(string URL) {
+            URL = URL.Replace("%20", " ");
+            return URL;
+        }
+        public static string Encode(string URL) {
+            URL = URL.Replace(" ", "%20");
+            return URL;
+        }
+    }
 
 	public class HTTPProcessor {
 		public TcpClient socket;        
@@ -111,7 +122,7 @@ namespace WebBack
 				throw new Exception("invalid http request line");
 			}
 			http_method = tokens[0].ToUpper();
-			http_url = tokens[1];
+			http_url = URLOperations.Decode(tokens[1]);
 			http_protocol_versionstring = tokens[2];
 			
 			Console.WriteLine("starting: " + request);
@@ -287,9 +298,9 @@ namespace WebBack
 			}
 			this.totalpath = Path.Combine(filepath, filename);
 		}
-		public bool Process (METHOD M, bool sendunknowntypes = true) {
+		public bool Process (METHOD M, bool caseSensitive = true, bool sendunknowntypes = false) {
 			if (M != METHOD.GREY && processMethodStrings == null) {throw new NullReferenceException();}
-			if (filename != "" && File.Exists(totalpath) && ListCheck(M)) {
+			if (filename != "" && File.Exists(totalpath) && ListCheck(M, caseSensitive)) {
 				foreach (KeyValuePair<string, string> KVP in this.filetypes) {
 					if (filename.ToLower().EndsWith(KVP.Key)) {
 						HTTP.writeSuccess(KVP.Value);
@@ -307,36 +318,36 @@ namespace WebBack
 			return false;
 		}
 		public enum METHOD {WHITELIST_CONTAINS, WHITELIST_IS, WHITELIST_BEGINS, WHITELIST_ENDS, BLACKLIST_CONTAINS, BLACKLIST_IS, BLACKLIST_BEGINS, BLACKLIST_ENDS, GREY}
-		private bool ListCheck (METHOD M) {
+		private bool ListCheck (METHOD M, bool caseSensitive = true) {
 			if (M == METHOD.BLACKLIST_BEGINS || M == METHOD.BLACKLIST_ENDS ||M == METHOD.BLACKLIST_CONTAINS ||M == METHOD.BLACKLIST_IS) {
 				switch (M) {
 				case METHOD.BLACKLIST_BEGINS:
-					foreach (string s in processMethodStrings) {if(filename.StartsWith(s)){return false;}continue;}
+                    foreach (string s in processMethodStrings) { if (caseSensitive ? filename.StartsWith(s) : filename.ToLower().StartsWith(s.ToLower())) { return false; } continue; }
 					break;
 				case METHOD.BLACKLIST_ENDS:
-					foreach (string s in processMethodStrings) {if(filename.EndsWith(s)){return false;}continue;}
+                    foreach (string s in processMethodStrings) { if (caseSensitive ? filename.EndsWith(s) : filename.ToLower().EndsWith(s.ToLower())) { return false; } continue; }
 					break;
 				case METHOD.BLACKLIST_CONTAINS:
-					foreach (string s in processMethodStrings) {if(filename.Contains(s)){return false;}continue;}
+                    foreach (string s in processMethodStrings) { if (caseSensitive ? filename.Contains(s) : filename.ToLower().Contains(s.ToLower())) { return false; } continue; }
 					break;
 				case METHOD.BLACKLIST_IS:
-					foreach (string s in processMethodStrings) {if(filename == s){return false;}continue;}
+                    foreach (string s in processMethodStrings) { if (caseSensitive ? filename == s : filename.ToLower() == s.ToLower()) { return false; } continue; }
 					break;
 				}
 				return true;
 			} else if (M == METHOD.WHITELIST_BEGINS || M == METHOD.WHITELIST_ENDS ||M == METHOD.WHITELIST_CONTAINS ||M == METHOD.WHITELIST_IS) { 
 				switch (M) {
 				case METHOD.WHITELIST_BEGINS:
-					foreach (string s in processMethodStrings) {if(filename.StartsWith(s)){return true;}continue;}
+                        foreach (string s in processMethodStrings) { if (caseSensitive ? filename.StartsWith(s) : filename.ToLower().StartsWith(s.ToLower())) { return true; } continue; }
 					break;
 				case METHOD.WHITELIST_ENDS:
-					foreach (string s in processMethodStrings) {if(filename.EndsWith(s)){return true;}continue;}
+                    foreach (string s in processMethodStrings) { if (caseSensitive ? filename.EndsWith(s) : filename.ToLower().EndsWith(s.ToLower())) { return true; } continue; }
 					break;
 				case METHOD.WHITELIST_CONTAINS:
-					foreach (string s in processMethodStrings) {if(filename.Contains(s)){return true;}continue;}
+                    foreach (string s in processMethodStrings) { if (caseSensitive ? filename.Contains(s) : filename.ToLower().Contains(s.ToLower())) { return true; } continue; }
 					break;
 				case METHOD.WHITELIST_IS:
-					foreach (string s in processMethodStrings) {if(filename == s){return true;}continue;}
+                    foreach (string s in processMethodStrings) { if (caseSensitive ? filename == s : filename.ToLower() == s.ToLower()) { return true; } continue; }
 					break;
 				}
 				return false;
