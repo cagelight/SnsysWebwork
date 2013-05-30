@@ -14,7 +14,7 @@ namespace WebBack
 			this.isRestricted = ir;
 			this.restrictionTitle = level;
 		}
-		public static implicit operator bool(RestrictionInfo I) {return I.isRestricted;}
+        public static RestrictionInfo NONE = new RestrictionInfo(false, null);
 	}
 	public struct SCookie {
 		public string name;
@@ -26,6 +26,9 @@ namespace WebBack
 		public static SCookie GenerateNew (string name) {
 			return new SCookie(name, StringRandom.GenerateNumLet(32));
 		}
+        public override string ToString() {
+            return String.Format("{0}={1};Path=/;", this.name, this.key);
+        }
 	}
 	public class ClientAuthorizations {
 		public class TimeKey {

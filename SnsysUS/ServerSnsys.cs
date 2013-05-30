@@ -47,8 +47,8 @@ namespace SnsysUS
 			this.process.Start();
 		}
 		public void HandleGET(HTTPProcessor sp) {
-            RestrictionInfo RI = IsURLRestricted(sp.http_url);
-			if (!RI || EvaluateClient(sp.clientip, sp.clientcookie,  RI.restrictionTitle)) {
+            RestrictionInfo RI;
+			if (!IsURLRestricted(sp.http_url, out RI) || EvaluateClient(sp.clientip, sp.clientcookie,  RI.restrictionTitle)) {
 				if (!HandleFiles(sp)) {
                     SitePass SP = new SitePass(sp.http_host, sp.http_url);
                     Dictionary<string,string> AP = ArgumentHelper.Organize(SP.Path, out SP.Path);
@@ -110,11 +110,13 @@ namespace SnsysUS
 			if (clientAuthorization.ContainsKey(addr) && c.key!=null && clientAuthorization[addr].CheckAuth(authlevel, c.key)) {return true;}
 			return false;
 		}
-		public RestrictionInfo IsURLRestricted (string url) {
-			if (url.Contains(".png")) {
-				return L1;
+		public bool IsURLRestricted (string url, out RestrictionInfo RI) {
+			if (url.Contains("restricted.png")) {
+                RI = L1;
+                return true;
 			} else {
-				return new RestrictionInfo(false, null);
+                RI = RestrictionInfo.NONE;
+                return false;
 			}
 		}
 		

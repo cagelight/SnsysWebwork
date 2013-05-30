@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -12,7 +14,12 @@ using WebFront;
 
 namespace SnsysUS {
     public class SnsysUSWeb {
-
+        private readonly string rootPath;
+        private readonly string thumbRootPath;
+        public SnsysUSWeb() {
+            rootPath = Path.Combine(Environment.CurrentDirectory, "Assets", "Art");
+            thumbRootPath = Path.Combine(Environment.CurrentDirectory, "Assets", "Art", ".thumb");
+        }
         public HTML.Webpage Generate(SitePass SP, Dictionary<string, string> args) {
             string[] divURL = SP.Host.Split('.');
             switch (divURL[0]) {
@@ -26,16 +33,15 @@ namespace SnsysUS {
             string galName = args.ContainsKey("collection") ? args["collection"] : "Art";
             HTML.Webpage WP = new HTML.Webpage(galName + " - Sensory Systems");
             WP.Head += HTML.Link().Rel("stylesheet").Href("/snsys.css");
-            string rootPath = Path.Combine(Environment.CurrentDirectory, "Assets", "Art");
-            string thumbPath = Path.Combine(Environment.CurrentDirectory, "Assets", ".thumb");
             string galPath = Path.Combine(rootPath, galName);
-            bool homePage = galName == "Art" || !Directory.Exists(galPath) ? true : false;
+            Console.WriteLine(galPath);
+            bool homePage = galName == "Art" || SnsysHelper.IsForbiddenGallery(galName) || !Directory.Exists(galPath) ? true : false;
             if (homePage) {
                 WP.Body += SnsysUSGeneric.TitleBar(galName);
                 List<HTMLContent> LI = new List<HTMLContent>();
                 foreach (string f in Directory.GetDirectories(rootPath)) {
-                    if (!SnsysHelper.IsHiddenGallery(f)) {
-                        string collectionName = SnsysHelper.Isolate(f);
+                    string collectionName = SnsysHelper.Isolate(f);
+                    if (!SnsysHelper.IsHiddenGallery(collectionName)) {
                         LI.Add(HTML.Attribute(HTML.H1(collectionName).Class("light")).Href(SP.TotalURL + "?collection=" + collectionName).Class("light"));
                         LI.Add(HTML.Span(" | ").Class("light"));
                         foreach (string sf in SnsysHelper.Isolate(Directory.GetDirectories(f))) {
@@ -64,7 +70,16 @@ namespace SnsysUS {
                         string[] level3FilesIsolated = SnsysHelper.Isolate(level3Files);
                         HTMLContent[] tableEntries = new HTMLContent[level3Files.Length];
                         for (int i = 0; i < level3Files.Length; ++i) {
-                            tableEntries[i] = HTML.H3(level3FilesIsolated[i]).Class("light");
+                            string thumbName;
+                            if (ArtSnsysHelper.HasValidExtension(level3FilesIsolated[i], out thumbName)) {
+                                string thumbPath = Path.Combine(thumbRootPath, galName, l1s, l2s, thumbName);
+                                Console.WriteLine(thumbPath);
+                                ArtSnsysHelper.HandleThumbs(level3Files[i], thumbPath);
+
+                                string imageURL = String.Join("/", "Art", galName, l1s, l2s, level3FilesIsolated[i]);
+                                string thumbURL = String.Join("/", "Art", ".thumb", galName, l1s, l2s, thumbName);
+                                tableEntries[i] = HTML.Attribute(HTML.Image().Src(thumbURL).Class("gal")).Href(imageURL);
+                            }
                         }
                         LI.Add(HTML.Div(HTML.SimpleTable(3, tableEntries).Class("gallery")).Class("galwrap"));
                     }
@@ -93,31 +108,63 @@ namespace SnsysUS {
 
     public static class SnsysHelper {
         public static string Isolate(string directory) {
-            directory = Path.GetFileName(directory);
-            return directory;
+            string r = Path.GetFileName(directory);
+            return r;
         }
         public static string[] Isolate(params string[] directoryArray) {
+            string[] r = new string[directoryArray.Length];
             for (int i = 0; i < directoryArray.Length; ++i) {
-                directoryArray[i] = Path.GetFileName(directoryArray[i]);
+                r[i] = Path.GetFileName(directoryArray[i]);
             }
-            return directoryArray;
+            return r;
         }
-        public static void Isolate(ref string directory) {
-            directory = Path.GetFileName(directory);
-            return;
-        }
-        public static void Isolate(ref string[] directoryArray) {
-            for (int i = 0; i < directoryArray.Length; ++i) {
-                directoryArray[i] = Path.GetFileName(directoryArray[i]);
-            }
-            return;
-        }
-        private static string[] hiddenGalleries = new string[] { ".thumb" };
+        private static string[] hiddenGalleries = new string[] { "Test Hidden" };
         public static bool IsHiddenGallery(string name) {
+            foreach (string s in forbiddenGalleries) {
+                if (name == s) { return true; }
+            }
             foreach (string s in hiddenGalleries) {
                 if (name == s) { return true; }
             }
             return false;
+        }
+        private static string[] forbiddenGalleries = new string[] { ".thumb" };
+        public static bool IsForbiddenGallery(string name) {
+            if (name.Contains("..") || name.Contains("/") || name.Contains("\\")) { return true; }
+            foreach (string s in forbiddenGalleries) {
+                if (name == s) { return true; }
+            }
+            return false;
+        }
+    }
+
+    public static class ArtSnsysHelper {
+        private static string[] validExtensions = new string[] { "bmp", "gif", "jpg", "jpeg", "png", "tiff" };
+        public static bool HasValidExtension(string filename, out string filenameThumbJPG) {
+            string checkExtension = filename.Substring(filename.LastIndexOf('.') + 1);
+            filenameThumbJPG = filename.Substring(0, filename.LastIndexOf('.')) + ".jpg";
+            foreach (string validExtension in validExtensions) {
+                if (checkExtension == validExtension) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        public static void HandleThumbs(string originalPath, string destinationPath) {
+            if (File.Exists(originalPath) && !File.Exists(destinationPath)) {
+                Console.WriteLine(String.Format("Creating thumbnail:\n{0}\n", destinationPath));
+                if (!Directory.Exists(Directory.GetParent(destinationPath).FullName)) {
+                    Directory.CreateDirectory(Directory.GetParent(destinationPath).FullName);
+                }
+                ArtSnsysHelper.CreateThumb(originalPath, destinationPath);
+            }
+        }
+        private static void CreateThumb(string originalPath, string destinationPath) {
+            Bitmap oB = new Bitmap(originalPath);
+            Size oldSize = oB.Size;
+            Size newSize = oldSize.Width > oldSize.Height ? new Size(160, (int)Math.Round(((float)oldSize.Height / (float)oldSize.Width) * 160.0f)) : new Size((int)Math.Round(((float)oldSize.Width / (float)oldSize.Height) * 160.0f), 160);
+            Bitmap nB = new Bitmap(oB, newSize);
+            nB.Save(destinationPath, ImageFormat.Jpeg);
         }
     }
 }

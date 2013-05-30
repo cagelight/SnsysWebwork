@@ -212,7 +212,7 @@ namespace WebBack
 			WriteToClient("Content-Type: " + content_type);
 		}
 		public void writeCookie(SCookie c) {
-			WriteToClient(String.Format("Set-Cookie: {0}={1}", c.name, c.key)); 
+			WriteToClient(String.Format("Set-Cookie: {0}", c.ToString())); 
 		}
 		public void writeClose() {
 			WriteToClient("Connection: close");
