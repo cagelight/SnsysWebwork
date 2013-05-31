@@ -34,7 +34,6 @@ namespace SnsysUS {
             HTML.Webpage WP = new HTML.Webpage(galName + " - Sensory Systems");
             WP.Head += HTML.Link().Rel("stylesheet").Href("/snsys.css");
             string galPath = Path.Combine(rootPath, galName);
-            Console.WriteLine(galPath);
             bool homePage = galName == "Art" || SnsysHelper.IsForbiddenGallery(galName) || !Directory.Exists(galPath) ? true : false;
             if (homePage) {
                 WP.Body += SnsysUSGeneric.TitleBar(galName);
@@ -45,8 +44,10 @@ namespace SnsysUS {
                         LI.Add(HTML.Attribute(HTML.H1(collectionName).Class("light")).Href(SP.TotalURL + "?collection=" + collectionName).Class("light"));
                         LI.Add(HTML.Span(" | ").Class("light"));
                         foreach (string sf in SnsysHelper.Isolate(Directory.GetDirectories(f))) {
-                            LI.Add(HTML.Attribute(sf).Class("light").Href(SP.TotalURL + "?collection=" + collectionName + "#" + sf));
-                            LI.Add(HTML.Span(" | ").Class("light"));
+                            if (sf != collectionName) {
+                                LI.Add(HTML.Attribute(sf).Class("light").Href(SP.TotalURL + "?collection=" + collectionName + "#" + sf));
+                                LI.Add(HTML.Span(" | ").Class("light"));
+                            }
                         }
                     }
                 }
@@ -55,10 +56,13 @@ namespace SnsysUS {
                 string[] level1Subdirs = SnsysHelper.Isolate(Directory.GetDirectories(galPath));
                 string subtitle = HTML.Span(" | ").Class("light").ToString();
                 foreach (string sf in level1Subdirs) {
-                    subtitle += HTML.Attribute(sf).Class("light").Href("#" + sf);
-                    subtitle += HTML.Span(" | ").Class("light");
+                    if (sf != galName) {
+                        subtitle += HTML.Attribute(sf).Class("light").Href("#" + sf);
+                        subtitle += HTML.Span(" | ").Class("light");
+                    }
                 }
                 WP.Body += SnsysUSGeneric.TitleBar(galName, subtitle);
+                List<HTMLContent> WA = new List<HTMLContent>();
                 foreach (string l1s in level1Subdirs) {
                     List<HTMLContent> LI = new List<HTMLContent>();
                     string level2Path = Path.Combine(galPath, l1s);
@@ -73,7 +77,6 @@ namespace SnsysUS {
                             string thumbName;
                             if (ArtSnsysHelper.HasValidExtension(level3FilesIsolated[i], out thumbName)) {
                                 string thumbPath = Path.Combine(thumbRootPath, galName, l1s, l2s, thumbName);
-                                Console.WriteLine(thumbPath);
                                 ArtSnsysHelper.HandleThumbs(level3Files[i], thumbPath);
 
                                 string imageURL = String.Join("/", "Art", galName, l1s, l2s, level3FilesIsolated[i]);
@@ -83,7 +86,52 @@ namespace SnsysUS {
                         }
                         LI.Add(HTML.Div(HTML.SimpleTable(3, tableEntries).Class("gallery")).Class("galwrap"));
                     }
-                    WP.Body += SnsysUSGeneric.SnsysSub(l1s, null, LI.ToArray());
+                    string[] level2Files = Directory.GetFiles(level2Path);
+                    if (level2Files.Length > 0) {
+                        string[] level2FilesIsolated = SnsysHelper.Isolate(level2Files);
+                        HTMLContent[] l2Loose = new HTMLContent[level2Files.Length];
+                        for (int i = 0; i < level2Files.Length; ++i) {
+                            string thumbName;
+                            if (ArtSnsysHelper.HasValidExtension(level2FilesIsolated[i], out thumbName)) {
+                                string thumbPath = Path.Combine(thumbRootPath, galName, l1s, thumbName);
+                                ArtSnsysHelper.HandleThumbs(level2Files[i], thumbPath);
+
+                                string imageURL = String.Join("/", "Art", galName, l1s, level2FilesIsolated[i]);
+                                string thumbURL = String.Join("/", "Art", ".thumb", galName, l1s, thumbName);
+                                l2Loose[i] = HTML.Attribute(HTML.Image().Src(thumbURL).Class("gal")).Href(imageURL);
+                            }
+                        }
+                        LI.Add(SnsysUSGeneric.SnsysBar());
+                        LI.Add(HTML.Div(HTML.SimpleTable(3, l2Loose).Class("gallery")).Class("galwrap"));
+                    }
+                    if (galName != l1s) {
+                        WA.Add(SnsysUSGeneric.SnsysSub(l1s, null, LI.ToArray()));
+                    } else {
+                        WA.Insert(0, SnsysUSGeneric.SnsysSub(null, null, LI.ToArray()));
+                    }
+                }
+                foreach (HTMLContent HC in WA) {
+                    WP.Body += HC;
+                }
+                string[] level1Files = Directory.GetFiles(galPath);
+                if (level1Files.Length > 0) {
+                    List<HTMLContent> LI = new List<HTMLContent>();
+                    string[] level1FilesIsolated = SnsysHelper.Isolate(level1Files);
+                    HTMLContent[] l2Loose = new HTMLContent[level1Files.Length];
+                    for (int i = 0; i < level1Files.Length; ++i) {
+                        string thumbName;
+                        if (ArtSnsysHelper.HasValidExtension(level1FilesIsolated[i], out thumbName)) {
+                            string thumbPath = Path.Combine(thumbRootPath, galName, thumbName);
+                            ArtSnsysHelper.HandleThumbs(level1Files[i], thumbPath);
+
+                            string imageURL = String.Join("/", "Art", galName, level1FilesIsolated[i]);
+                            string thumbURL = String.Join("/", "Art", ".thumb", galName, thumbName);
+                            l2Loose[i] = HTML.Attribute(HTML.Image().Src(thumbURL).Class("gal")).Href(imageURL);
+                        }
+                    }
+                    LI.Add(SnsysUSGeneric.SnsysBar());
+                    LI.Add(HTML.Div(HTML.SimpleTable(3, l2Loose).Class("gallery")).Class("galwrap"));
+                    WP.Body += SnsysUSGeneric.SnsysSub(null, null, LI.ToArray());
                 }
             }
             return WP;
@@ -165,6 +213,8 @@ namespace SnsysUS {
             Size newSize = oldSize.Width > oldSize.Height ? new Size(160, (int)Math.Round(((float)oldSize.Height / (float)oldSize.Width) * 160.0f)) : new Size((int)Math.Round(((float)oldSize.Width / (float)oldSize.Height) * 160.0f), 160);
             Bitmap nB = new Bitmap(oB, newSize);
             nB.Save(destinationPath, ImageFormat.Jpeg);
+            oB.Dispose();
+            nB.Dispose();
         }
     }
 }

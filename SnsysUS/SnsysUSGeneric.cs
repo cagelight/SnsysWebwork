@@ -20,7 +20,7 @@ namespace SnsysUS {
         public static HTMLContent SnsysBar(string name = null, string tag = null) {
             HTMLContent A = HTML.Attribute().Class("light");
             if (tag != null) { A.ID(tag); }
-            A += HTML.Div( HTML.H3(name).Class("dark") ).Class("subbar");
+            A += HTML.Div(HTML.H3(name).Class("dark")).Class("subbar").Style(name == null ? Style.Width(400) : Style.Width(600));
             HTMLContent MD = HTML.Div(A).Class("bar");
             return MD;
         }

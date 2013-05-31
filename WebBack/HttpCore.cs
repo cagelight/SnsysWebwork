@@ -88,75 +88,82 @@ namespace WebBack
 			}            
 			return data;
 		}
-		public void process() {                        
-			// we can't use a StreamReader for input, because it buffers up extra data on us inside it's
-			// "processed" view of the world, and we want the data raw after the headers
-			inputStream = new BufferedStream(socket.GetStream());
-			
-			// we probably shouldn't be using a streamwriter for all output from handlers either
-			outputCore = new BufferedStream(socket.GetStream());
-			outputStream = new StreamWriter(outputCore);
-			outputBinary = new BinaryWriter(outputCore);
-			try {
-				parseRequest();
-				readHeaders();
-				if (http_method.Equals("GET")) {
-					handleGETRequest();
-				} else if (http_method.Equals("POST")) {
-					handlePOSTRequest();
-				}
-			} catch (Exception e) {
-				Console.WriteLine("Exception: " + e.ToString());
-				writeFailure();
-			}
-			outputStream.Flush();
-			// bs.Flush(); // flush any remaining output
-			inputStream = null; outputStream = null; // bs = null;            
-			socket.Close();             
+		public void process() {
+            try {
+                // we can't use a StreamReader for input, because it buffers up extra data on us inside it's
+                // "processed" view of the world, and we want the data raw after the headers
+                inputStream = new BufferedStream(socket.GetStream());
+
+                // we probably shouldn't be using a streamwriter for all output from handlers either
+                outputCore = new BufferedStream(socket.GetStream());
+                outputStream = new StreamWriter(outputCore);
+                outputBinary = new BinaryWriter(outputCore);
+                try {
+                    parseRequest();
+                    readHeaders();
+                    if (http_method.Equals("GET")) {
+                        handleGETRequest();
+                    } else if (http_method.Equals("POST")) {
+                        handlePOSTRequest();
+                    }
+                } catch (Exception e) {
+                    Console.WriteLine("Exception: " + e.ToString());
+                    writeFailure();
+                }
+                outputStream.Flush();
+                // bs.Flush(); // flush any remaining output
+                inputStream = null; outputStream = null; // bs = null;            
+                socket.Close();
+            } catch {
+                Console.WriteLine("A generic connection error occured.");
+            }
 		}
 		
 		public void parseRequest() {
-			String request = streamReadLine(inputStream);
-			string[] tokens = request.Split(' ');
-			if (tokens.Length != 3) {
-				throw new Exception("invalid http request line");
-			}
-			http_method = tokens[0].ToUpper();
-			http_url = URLOperations.Decode(tokens[1]);
-			http_protocol_versionstring = tokens[2];
-			
-			Console.WriteLine("starting: " + request);
+            try {
+                String request = streamReadLine(inputStream);
+                string[] tokens = request.Split(' ');
+                if (tokens.Length != 3) {
+                    throw new Exception("invalid http request line");
+                }
+                http_method = tokens[0].ToUpper();
+                http_url = URLOperations.Decode(tokens[1]);
+                http_protocol_versionstring = tokens[2];
+            } catch {
+                Console.WriteLine("A parsing error occured.");
+            }
 		}
 		
 		public void readHeaders() {
-			Console.WriteLine("readHeaders()");
-			String line;
-			while ((line = streamReadLine(inputStream)) != null) {
-				if (line.Equals("")) {
-					Console.WriteLine("got headers");
-					return;
-				}
-				if (line.StartsWith("Host:")) {
-					http_host = line.Substring(6);
-				}
-				if (line.StartsWith("Cookie:")) {
-					string[] t = line.Substring(8).Split('=');
-					clientcookie = new SCookie(t[0],t[1]);
-				}
-				int separator = line.IndexOf(':');
-				if (separator == -1) {
-					throw new Exception("invalid http header line: " + line);
-				}
-				String name = line.Substring(0, separator);
-				int pos = separator + 1;
-				while ((pos < line.Length) && (line[pos] == ' ')) {
-					pos++; // strip any spaces
-				}
-				
-				string value = line.Substring(pos, line.Length - pos);
-				Console.WriteLine("header: {0}:{1}",name,value);
-				httpHeaders[name] = value;
-			}
+            try {
+                String line;
+                while ((line = streamReadLine(inputStream)) != null) {
+                    if (line.Equals("")) {
+                        return;
+                    }
+                    if (line.StartsWith("Host:")) {
+                        http_host = line.Substring(6);
+                    }
+                    if (line.StartsWith("Cookie:")) {
+                        string[] t = line.Substring(8).Split('=');
+                        clientcookie = new SCookie(t[0], t[1]);
+                    }
+                    int separator = line.IndexOf(':');
+                    if (separator == -1) {
+                        throw new Exception("invalid http header line: " + line);
+                    }
+                    String name = line.Substring(0, separator);
+                    int pos = separator + 1;
+                    while ((pos < line.Length) && (line[pos] == ' ')) {
+                        pos++; // strip any spaces
+                    }
+
+                    string value = line.Substring(pos, line.Length - pos);
+                    httpHeaders[name] = value;
+                }
+            } catch {
+                Console.WriteLine("A header reading error occured.");
+            }
 		}
 		
 		public void handleGETRequest() {
@@ -171,7 +178,6 @@ namespace WebBack
 			// we hand him needs to let him see the "end of the stream" at this content 
 			// length, because otherwise he won't know when he's seen it all! 
 			
-			Console.WriteLine("get post data start");
 			int content_len = 0;
 			MemoryStream ms = new MemoryStream();
 			if (this.httpHeaders.ContainsKey("Content-Length")) {
@@ -184,10 +190,8 @@ namespace WebBack
 				byte[] buf = new byte[BUF_SIZE];              
 				int to_read = content_len;
 				while (to_read > 0) {  
-					Console.WriteLine("starting Read, to_read={0}",to_read);
 					
 					int numread = this.inputStream.Read(buf, 0, Math.Min(BUF_SIZE, to_read));
-					Console.WriteLine("read finished, numread={0}", numread);
 					if (numread == 0) {
 						if (to_read == 0) {
 							break;
@@ -200,7 +204,6 @@ namespace WebBack
 				}
 				ms.Seek(0, SeekOrigin.Begin);
 			}
-			Console.WriteLine("get post data end");
 			srv.HandlePOST(this, new StreamReader(ms));
 			
 		}

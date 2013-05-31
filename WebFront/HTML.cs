@@ -23,6 +23,9 @@ namespace WebFront {
             }
         }
         public static HTMLContent operator +(HTMLContent A, IElement B) { A.contents.Add(B); return A; }
+        public void Insert(HTMLContent A, int index = 0) {
+            this.contents.Insert(index, A);
+        }
         public HTMLContent Action(string val) { return Attribute("action", val); }
         public HTMLContent Class(string val) { return Attribute("class", val); }
         public HTMLContent Href(string val) { return Attribute("href", val); }
