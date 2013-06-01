@@ -56,7 +56,7 @@ namespace WebBack
 		private Stream inputStream;
 		public StreamWriter outputStream;
 		public BinaryWriter outputBinary;
-		private BufferedStream outputCore;
+		public BufferedStream outputCore;
 		
 		public String http_method;
 		public String http_url;
@@ -110,9 +110,10 @@ namespace WebBack
                     Console.WriteLine("Exception: " + e.ToString());
                     writeFailure();
                 }
-                outputStream.Flush();
-                // bs.Flush(); // flush any remaining output
-                inputStream = null; outputStream = null; // bs = null;            
+				outputBinary.Flush();
+				outputStream.Flush();
+				outputCore.Flush();
+				inputStream = null; outputBinary = null; outputStream = null; outputCore = null;      
                 socket.Close();
             } catch {
                 Console.WriteLine("A generic connection error occured.");
@@ -273,6 +274,7 @@ namespace WebBack
 			{".ico", "image/x-icon"},
 			{".jpeg", "image/jpeg"},
 			{".jpg", "image/jpeg"},
+			{".js", "application/x-javascript"},
 			{".png", "image/png"},
 			{".txt", "text/plain"},
 			{".zip", "application/zip"},

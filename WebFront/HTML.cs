@@ -34,6 +34,7 @@ namespace WebFront {
         public HTMLContent Name(string val) { return Attribute("name", val); }
         public HTMLContent Rel(string val) { return Attribute("rel", val); }
         public HTMLContent Src(string val) { return Attribute("src", val); }
+		public HTMLContent Title(string val) { return Attribute("title", val); }
         public HTMLContent Type(string val) { return Attribute("type", val); }
         public HTMLContent Value(string val) { return Attribute("value", val); }
         public HTMLContent Attribute(string name, string val) {

@@ -13,7 +13,8 @@ namespace SnsysWebwork
 {
 	public class Executor {
 		public static int Main(String[] args) {
-			SnsysUSServer TS = new SnsysUSServer(IPAddress.Any, 8080);
+			Console.WriteLine ("Welcome to SnsysWebwork.");
+			SnsysUSServer TS = new SnsysUSServer(IPAddress.Any, 80);
 			TS.Start();
 			while (true) {
 				string instr = Console.ReadLine();
@@ -21,6 +22,10 @@ namespace SnsysWebwork
 				switch (instrS[0].ToUpper()) {
 				case "EXIT":
 					return 0;
+				case "RELOAD":
+					TS.ReloadConfigurations ();
+					Console.WriteLine ("Configurations Reloaded");
+					break;
 				}
 			}
 		}

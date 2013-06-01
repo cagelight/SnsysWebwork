@@ -8,7 +8,7 @@ using WebFront;
 namespace WebBack
 {
 	public struct RestrictionInfo {
-		bool isRestricted;
+		public readonly bool isRestricted;
 		public readonly string restrictionTitle;
 		public RestrictionInfo(bool ir, string level) {
 			this.isRestricted = ir;

@@ -23,10 +23,18 @@ namespace SnsysUS
 		public Thread process;
 		public bool active = false;
 		public Dictionary<IPAddress, ClientAuthorizations> clientAuthorization;
+
+		public string[] restrictedWords;
+
 		public SnsysUSServer(IPAddress addr, ushort port){
 			tcpl = new TcpListener(addr, port);
 			clientAuthorization = new Dictionary<IPAddress, ClientAuthorizations>();
+			this.restrictedWords = SnsysUSServer.LoadRestrictedWordsFile ();
+
 		} 
+		public void ReloadConfigurations () {
+			this.restrictedWords = SnsysUSServer.LoadRestrictedWordsFile ();
+		}
 		public void Run () {
 			while (this.active) {
 				try {
@@ -53,7 +61,7 @@ namespace SnsysUS
                     SitePass SP = new SitePass(sp.http_host, sp.http_url);
                     Dictionary<string,string> AP = ArgumentHelper.Organize(SP.Path, out SP.Path);
                     sp.writeSuccess();
-                    sp.WriteToClient(sitelogic.Generate(SP, AP).ToString());
+                    sp.WriteToClient(sitelogic.Generate(this, SP, AP).ToString());
 				}
 			} else {
 				sp.writeSuccess();
@@ -111,13 +119,14 @@ namespace SnsysUS
 			return false;
 		}
 		public bool IsURLRestricted (string url, out RestrictionInfo RI) {
-			if (url.Contains("restricted.png")) {
-                RI = L1;
-                return true;
-			} else {
-                RI = RestrictionInfo.NONE;
-                return false;
+			foreach (string restr in this.restrictedWords) {
+				if (url.ToLower().Contains (restr.ToLower())) {
+					RI = L1;
+					return true;
+				}
 			}
+	        RI = RestrictionInfo.NONE;
+	        return false;
 		}
 		
 		public bool IsLevelKeyValid (string level, string key) {
@@ -125,6 +134,11 @@ namespace SnsysUS
 				return true;
 			}
 			return false;
+		}
+
+		public static string[] LoadRestrictedWordsFile () {
+			string rawRestriction = new StreamReader (File.OpenRead(Path.Combine(Environment.CurrentDirectory, "RestrictedWords.conf"))).ReadToEnd();
+			return rawRestriction.Split (';');
 		}
 	}
 }

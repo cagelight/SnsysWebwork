@@ -15,10 +15,15 @@ namespace WebFront {
         public enum POSITION_Y { TOP, CENTER, BOTTOM };
         private static Dictionary<POSITION_X, string> POSITION_XD = new Dictionary<POSITION_X, string>() { { POSITION_X.LEFT, "left" }, { POSITION_X.CENTER, "center" }, { POSITION_X.RIGHT, "right" } };
         private static Dictionary<POSITION_Y, string> POSITION_YD = new Dictionary<POSITION_Y, string>() { { POSITION_Y.TOP, "top" }, { POSITION_Y.CENTER, "center" }, { POSITION_Y.BOTTOM, "bottom" } };
-        public enum REPEAT { X, Y, XY, NONE, INHERIT };
+        
+		public enum REPEAT { X, Y, XY, NONE, INHERIT };
         private static Dictionary<REPEAT, string> REPEATD = new Dictionary<REPEAT, string>() { { REPEAT.X, "repeat-x" }, { REPEAT.Y, "repeat-y" }, { REPEAT.XY, "repeat" }, { REPEAT.NONE, "no-repeat" }, { REPEAT.INHERIT, "repeat-inherit" }, };
-        public enum GenericCSSOption { AUTO, INHERIT };
+        
+		public enum GenericCSSOption { AUTO, INHERIT };
         private static Dictionary<GenericCSSOption, string> GENERICD = new Dictionary<GenericCSSOption, string>() { { GenericCSSOption.AUTO, "auto" }, { GenericCSSOption.INHERIT, "inherit" } };
+
+		public enum FONTWEIGHT{ NORMAL, BOLD, BOLDER, LIGHTER, INHERIT }
+		private static Dictionary<FONTWEIGHT, string> FONTWEIGHTD = new Dictionary<FONTWEIGHT, string> () { {FONTWEIGHT.NORMAL, "normal"},{FONTWEIGHT.BOLD, "bold"},{FONTWEIGHT.BOLDER, "bolder"},{FONTWEIGHT.LIGHTER, "lighter"},{FONTWEIGHT.INHERIT, "inherit"} };
 
         //PRESETS
 
@@ -36,6 +41,9 @@ namespace WebFront {
         /// <summary> This is the default method, it will use "inherit". </summary>
         public static Style BackgroundPosition() { return new Style("background-position", "inherit"); }
         public static Style BackgroundRepeat(REPEAT R) { return new Style("background-repeat", Style.REPEATD[R]); }
+
+		public static Style FontWeight(int w) { return new Style ("font-weight", w.ToString()); }
+		public static Style FontWeight(FONTWEIGHT w) { return new Style ("font-weight", Style.FONTWEIGHTD[w]); }
 
         public static Style Width(GenericCSSOption G) { return new Style("width", Style.GENERICD[G]); }
         public static Style Width(int W) { return new Style("width", String.Format("{0}px", W)); }
