@@ -42,7 +42,7 @@ namespace SnsysUS
 					HTTPProcessor processor = new HTTPProcessor(tcpc, this);
 					Thread handleClient = new Thread(new ThreadStart(processor.process));
 					handleClient.Start(); 
-					Thread.Sleep(1);
+					//Thread.Sleep(1);
 				} catch (Exception e) {
 					Console.WriteLine(e);
 				}
@@ -55,6 +55,12 @@ namespace SnsysUS
 			this.process.Start();
 		}
 		public void HandleGET(HTTPProcessor sp) {
+			/*if (sp.http_host == "etherpad.snsys.us") {
+				WebRequest WReq = HttpWebRequest.Create(new Uri("http://127.0.0.1:9001/" + sp.http_url));
+				WebResponse WRes = WReq.GetResponse ();
+				sp.WriteToClient (new StreamReader(WRes.GetResponseStream()).ReadToEnd());
+				return;
+			}*/
             RestrictionInfo RI;
 			if (!IsURLRestricted(sp.http_url, out RI) || EvaluateClient(sp.clientip, sp.clientcookie,  RI.restrictionTitle)) {
 				if (!HandleFiles(sp)) {
@@ -110,8 +116,8 @@ namespace SnsysUS
 		}
 		public bool HandleFiles (HTTPProcessor sp) {
 			FileProcessor FP = new FileProcessor(sp, Path.Combine(Environment.CurrentDirectory, "Assets"));
-			FP.processMethodStrings = new List<string>(){"RESTRICTED"};
-			return FP.Process(FileProcessor.METHOD.BLACKLIST_CONTAINS, false, false);
+			//FP.processMethodStrings = new List<string>(){"RESTRICTED"};
+			return FP.Process(FileProcessor.METHOD.GREY, false, false);
 		}
 		
 		public bool EvaluateClient (IPAddress addr, SCookie c, string authlevel) {
@@ -138,7 +144,7 @@ namespace SnsysUS
 
 		public static string[] LoadRestrictedWordsFile () {
 			string rawRestriction = new StreamReader (File.OpenRead(Path.Combine(Environment.CurrentDirectory, "RestrictedWords.conf"))).ReadToEnd();
-			return rawRestriction.Split (';');
+			return rawRestriction.Replace("\n","").Split (';');
 		}
 	}
 }

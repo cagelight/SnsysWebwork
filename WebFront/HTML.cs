@@ -126,13 +126,13 @@ namespace WebFront {
         public static HTMLContent TRow(params IElement[] contents) { return new HTMLContent("tr", contents); }
         public static HTMLContent Title(TextElement contents) { return new HTMLContent("title", contents); }
 
-        public static HTMLContent SimpleTable(ushort rowSize, params IElement[] contents) {
+        public static HTMLContent SimpleTable(int rowSize, params IElement[] contents) {
             HTMLContent Body = HTML.TBody();
             int rowNum = contents.Length / rowSize;
             int rowRemain = contents.Length % rowSize;
             for (int a = 0; a < rowNum; ++a) {
                 HTMLContent Row = HTML.TRow();
-                for (ushort r = 0; r < rowSize; ++r) {
+                for (int r = 0; r < rowSize; ++r) {
                     int index = (a * rowSize) + r;
                     Row += HTML.TCell(contents[index]);
                 }

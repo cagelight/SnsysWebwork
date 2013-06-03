@@ -1,9 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
+using Gdk;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -74,7 +72,6 @@ namespace SnsysUS {
                     string[] level2Subdirs = SnsysHelper.Isolate(Directory.GetDirectories(level2Path));
                     foreach (string l2s in level2Subdirs) {
                         string level3Path = Path.Combine(level2Path, l2s);
-						LI.Add(SnsysUSGeneric.SnsysBar(l2s, l1s + "_" + l2s, String.Format("javascript:hideGal('#g{0}')", l1s + "_" + l2s)));
                         string[] level3Files = Directory.GetFiles(level3Path);
                         string[] level3FilesIsolated = SnsysHelper.Isolate(level3Files);
                         HTMLContent[] tableEntries = new HTMLContent[level3Files.Length];
@@ -89,7 +86,9 @@ namespace SnsysUS {
                                 tableEntries[i] = HTML.Attribute(HTML.Image().Src(thumbURL).Class("gal")).Href(imageURL);
                             }
                         }
-						LI.Add(HTML.Div(HTML.SimpleTable(3, tableEntries).Class("gallery")).Class("galwrap").ID("g" + l1s + "_" + l2s));
+						LI.Add(SnsysUSGeneric.SnsysBar(l2s, l1s + "_" + l2s, String.Format("javascript:hideGal('#g{0}')", l1s.Replace(' ', '-') + "_" + l2s.Replace(' ', '-'))));
+						int rowSize = tableEntries.Length < 13 ? 4 : (tableEntries .Length < 16 ? 5 : 6);
+						LI.Add(HTML.Div(HTML.SimpleTable(rowSize, tableEntries).Class("gallery")).Class("galwrap").ID("g" + l1s.Replace(' ', '-') + "_" + l2s.Replace(' ', '-')));
                     }
                     string[] level2Files = Directory.GetFiles(level2Path);
                     if (level2Files.Length > 0) {
@@ -100,14 +99,14 @@ namespace SnsysUS {
                             if (ArtSnsysHelper.HasValidExtension(level2FilesIsolated[i], out thumbName)) {
                                 string thumbPath = Path.Combine(thumbRootPath, galName, l1s, thumbName);
                                 ArtSnsysHelper.HandleThumbs(level2Files[i], thumbPath);
-
                                 string imageURL = String.Join("/", "Art", galName, l1s, level2FilesIsolated[i]);
                                 string thumbURL = String.Join("/", "Art", ".thumb", galName, l1s, thumbName);
                                 l2Loose[i] = HTML.Attribute(HTML.Image().Src(thumbURL).Class("gal")).Href(imageURL);
                             }
                         }
-						LI.Add(SnsysUSGeneric.SnsysBar(null,l1s + "_", String.Format("javascript:hideGal('#g{0}')", l1s + "_")));
-                        LI.Add(HTML.Div(HTML.SimpleTable(3, l2Loose).Class("gallery")).Class("galwrap").ID("g" + l1s + "_"));
+						LI.Add(SnsysUSGeneric.SnsysBar(null,l1s + "_", String.Format("javascript:hideGal('#g{0}')", l1s.Replace(' ', '-') + "_")));
+						int rowSize = l2Loose.Length < 13 ? 4 : (l2Loose .Length < 16 ? 5 : 6);
+						LI.Add(HTML.Div(HTML.SimpleTable(rowSize, l2Loose).Class("gallery")).Class("galwrap").ID("g" + l1s.Replace(' ', '-') + "_"));
                     }
                     if (galName != l1s) {
                         WA.Add(SnsysUSGeneric.SnsysSub(l1s, null, LI.ToArray()));
@@ -217,19 +216,13 @@ namespace SnsysUS {
         }
         private static void CreateThumb(string originalPath, string destinationPath) {
 			try {
-				Image oB = Bitmap.FromFile (originalPath);
-	            Size oldSize = oB.Size;
-	            Size newSize = oldSize.Width > oldSize.Height ? new Size(160, (int)Math.Round(((float)oldSize.Height / (float)oldSize.Width) * 160.0f)) : new Size((int)Math.Round(((float)oldSize.Width / (float)oldSize.Height) * 160.0f), 160);
-	            Bitmap nB = new Bitmap(newSize.Width, newSize.Height);
-				Graphics graph = Graphics.FromImage(nB);
-				graph.InterpolationMode = InterpolationMode.HighQualityBicubic;
-				graph.CompositingQuality = CompositingQuality.HighQuality;
-				graph.SmoothingMode = SmoothingMode.AntiAlias;
-				graph.DrawImage(oB, new Rectangle(0, 0, newSize.Width, newSize.Height));
-
-	            nB.Save(destinationPath, ImageFormat.Jpeg);
-	            oB.Dispose();
-	            nB.Dispose();
+				Pixbuf oI = new Pixbuf(originalPath);
+				Size oldSize = new Size(oI.Width, oI.Height);
+				Size newSize = oldSize.Width > oldSize.Height ? new Size(160, (int)Math.Round(((float)oldSize.Height / (float)oldSize.Width) * 160.0f)) : new Size((int)Math.Round(((float)oldSize.Width / (float)oldSize.Height) * 160.0f), 160);
+				Pixbuf nI = oI.ScaleSimple(newSize.Width, newSize.Height, InterpType.Bilinear);
+				nI.Save(destinationPath, "jpeg");
+				oI = null;
+				nI = null;
 			} catch (Exception e){
 				Console.WriteLine ("An error has occured while trying to load an image, or create a thumbnail. Error below:");
 				Console.WriteLine (e);
