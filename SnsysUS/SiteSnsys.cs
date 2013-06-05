@@ -138,6 +138,7 @@ namespace SnsysUS {
                     WP.Body += SnsysUSGeneric.SnsysSub(null, null, LI.ToArray());
                 }
 				WP.Body += SnsysUSGeneric.GalFootBar ();
+				WP.Body += HTML.Script("toggleScroll();").Type("text/javascript");
             }
             return WP;
         }

@@ -29,7 +29,7 @@ namespace SnsysWebwork
 			Console.WriteLine ("Welcome to SnsysWebwork.");
 			Thread BPDF = new Thread (new ThreadStart(BrokenPipeDefenseForce));
 			BPDF.Start ();
-			SnsysUSServer TS = new SnsysUSServer(IPAddress.Any, 80);
+			SnsysUSServer TS = new SnsysUSServer(IPAddress.Any);
 			TS.Start();
 
 			while (true) {

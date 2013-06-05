@@ -19,15 +19,15 @@ namespace SnsysUS
 		};
 		private static RestrictionInfo L1 = new RestrictionInfo(true, "L1");
         public SnsysUSWeb sitelogic = new SnsysUSWeb();
-		public TcpListener tcpl; 
-		public Thread process;
+		public TcpListener httptcpl;
+		public Thread httpprocess;
 		public bool active = false;
 		public Dictionary<IPAddress, ClientAuthorizations> clientAuthorization;
 
 		public string[] restrictedWords;
 
-		public SnsysUSServer(IPAddress addr, ushort port){
-			tcpl = new TcpListener(addr, port);
+		public SnsysUSServer(IPAddress addr){
+			httptcpl = new TcpListener(addr, 80);
 			clientAuthorization = new Dictionary<IPAddress, ClientAuthorizations>();
 			this.restrictedWords = SnsysUSServer.LoadRestrictedWordsFile ();
 
@@ -35,24 +35,23 @@ namespace SnsysUS
 		public void ReloadConfigurations () {
 			this.restrictedWords = SnsysUSServer.LoadRestrictedWordsFile ();
 		}
-		public void Run () {
+		public void HTTPRun () {
 			while (this.active) {
 				try {
-					TcpClient tcpc = tcpl.AcceptTcpClient();
+					TcpClient tcpc = httptcpl.AcceptTcpClient();
 					HTTPProcessor processor = new HTTPProcessor(tcpc, this);
 					Thread handleClient = new Thread(new ThreadStart(processor.process));
 					handleClient.Start(); 
-					//Thread.Sleep(1);
 				} catch (Exception e) {
 					Console.WriteLine(e);
 				}
 			}
 		}
 		public void Start () {
-			this.tcpl.Start();
+			this.httptcpl.Start();
 			this.active = true;
-			this.process = new Thread(Run);
-			this.process.Start();
+			this.httpprocess = new Thread(HTTPRun);
+			this.httpprocess.Start();
 		}
 		public void HandleGET(HTTPProcessor sp) {
 			/*if (sp.http_host == "etherpad.snsys.us") {
@@ -143,8 +142,13 @@ namespace SnsysUS
 		}
 
 		public static string[] LoadRestrictedWordsFile () {
-			string rawRestriction = new StreamReader (File.OpenRead(Path.Combine(Environment.CurrentDirectory, "RestrictedWords.conf"))).ReadToEnd();
-			return rawRestriction.Replace("\n","").Split (';');
+			try {
+				string rawRestriction = new StreamReader (File.OpenRead(Path.Combine(Environment.CurrentDirectory, "RestrictedWords.conf"))).ReadToEnd();
+				return rawRestriction.Replace("\n","").Split (';');
+			} catch (Exception e){
+				Console.WriteLine (e);
+				return new string[] {};
+			}
 		}
 	}
 }

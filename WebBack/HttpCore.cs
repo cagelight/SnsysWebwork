@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.Security;
 using System.Security.Cryptography;
+using System.Security.Authentication;
 using System.Text;
 using System.Threading ;
 
@@ -12,7 +14,7 @@ using WebFront;
 
 namespace WebBack
 {
-	public interface IServer {void Start(); void Run(); void HandleGET(HTTPProcessor sp); void HandlePOST(HTTPProcessor sp, StreamReader sr);}
+	public interface IServer {void Start(); void HandleGET(HTTPProcessor sp); void HandlePOST(HTTPProcessor sp, StreamReader sr);}
 
 	public static class StringRandom {
         public const string Num = "1234567890";
@@ -57,6 +59,7 @@ namespace WebBack
 		public StreamWriter outputStream;
 		public BinaryWriter outputBinary;
 		public BufferedStream outputCore;
+		public SslStream outputSecure;
 		
 		public String http_method;
 		public String http_url;
@@ -65,14 +68,17 @@ namespace WebBack
 		public IPAddress clientip;
 		public SCookie clientcookie;
 		public Hashtable httpHeaders = new Hashtable();
+
+		public bool secure;
 		
 		
 		private static int MAX_POST_SIZE = 10 * 1024 * 1024; // 10MB
 		
-		public HTTPProcessor(TcpClient s, IServer srv) {
+		public HTTPProcessor(TcpClient s, IServer srv, bool secure = false) {
 			this.clientip = ((IPEndPoint)s.Client.RemoteEndPoint).Address;
 			this.socket = s;
-			this.srv = srv;                   
+			this.srv = srv;
+			this.secure = secure;
 		}
 		
 		
@@ -90,14 +96,17 @@ namespace WebBack
 		}
 		public void process() {
             try {
-                // we can't use a StreamReader for input, because it buffers up extra data on us inside it's
-                // "processed" view of the world, and we want the data raw after the headers
                 inputStream = new BufferedStream(socket.GetStream());
-
-                // we probably shouldn't be using a streamwriter for all output from handlers either
                 outputCore = new BufferedStream(socket.GetStream());
                 outputStream = new StreamWriter(outputCore);
                 outputBinary = new BinaryWriter(outputCore);
+				if (this.secure) {
+					Console.WriteLine("Secure requested.");
+					outputSecure = new SslStream(socket.GetStream(), false);
+					Console.WriteLine("Attempting to authenticate.");
+					outputSecure.AuthenticateAsServer(System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromCertFile("snsys.us.cert"), false, SslProtocols.Tls, false);
+					Console.WriteLine("Authenticated.");
+				}
                 try {
                     parseRequest();
                     readHeaders();
@@ -115,14 +124,16 @@ namespace WebBack
 				outputCore.Flush();
 				inputStream = null; outputBinary = null; outputStream = null; outputCore = null;      
                 socket.Close();
-            } catch {
-                Console.WriteLine("A generic connection error occured.");
+            } catch (Exception e){
+                Console.WriteLine("-----CORE CONNECTION ERROR BEGINS-----");
+				Console.WriteLine(e);
+				Console.WriteLine("-----CORE CONNECTION ERROR ENDS-----");
             }
 		}
 		
 		public void parseRequest() {
             try {
-                String request = streamReadLine(inputStream);
+				string request = this.secure?streamReadLine(outputSecure):streamReadLine(inputStream);
                 string[] tokens = request.Split(' ');
                 if (tokens.Length != 3) {
                     throw new Exception("invalid http request line");
@@ -130,15 +141,17 @@ namespace WebBack
                 http_method = tokens[0].ToUpper();
                 http_url = URLOperations.Decode(tokens[1]);
                 http_protocol_versionstring = tokens[2];
-            } catch {
-                Console.WriteLine("A parsing error occured.");
+            } catch (Exception e){
+                Console.WriteLine ("A parsing error occured:");
+				Console.WriteLine (e);
             }
 		}
 		
 		public void readHeaders() {
             try {
-                String line;
-                while ((line = streamReadLine(inputStream)) != null) {
+                string line;
+				while ((line = this.secure?streamReadLine(outputSecure):streamReadLine(inputStream)) != null) {
+					Console.WriteLine(line);
                     if (line.Equals("")) {
                         return;
                     }
@@ -153,7 +166,7 @@ namespace WebBack
                     if (separator == -1) {
                         throw new Exception("invalid http header line: " + line);
                     }
-                    String name = line.Substring(0, separator);
+                    string name = line.Substring(0, separator);
                     int pos = separator + 1;
                     while ((pos < line.Length) && (line[pos] == ' ')) {
                         pos++; // strip any spaces
@@ -162,8 +175,9 @@ namespace WebBack
                     string value = line.Substring(pos, line.Length - pos);
                     httpHeaders[name] = value;
                 }
-            } catch {
-                Console.WriteLine("A header reading error occured.");
+            } catch (Exception e){
+                Console.WriteLine("A header reading error occured:");
+				Console.WriteLine (e);
             }
 		}
 		
