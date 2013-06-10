@@ -66,7 +66,7 @@ namespace WebBack
 		public String http_protocol_versionstring;
 		public string http_host;
 		public IPAddress clientip;
-		public SCookie clientcookie;
+		public List<SCookie> clientcookies;
 		public Hashtable httpHeaders = new Hashtable();
 
 		public bool secure;
@@ -160,7 +160,7 @@ namespace WebBack
                     }
                     if (line.StartsWith("Cookie:")) {
                         string[] t = line.Substring(8).Split('=');
-                        clientcookie = new SCookie(t[0], t[1]);
+                        clientcookies.Add(new SCookie(t[0], t[1]));
                     }
                     int separator = line.IndexOf(':');
                     if (separator == -1) {

@@ -62,7 +62,7 @@ namespace SnsysUS
 				return;
 			}*/
             RestrictionInfo RI;
-			if (!IsURLRestricted(sp.http_url, out RI) || EvaluateClient(sp.clientip, sp.clientcookie,  RI.restrictionTitle)) {
+			if (!IsURLRestricted(sp.http_url, out RI) || EvaluateClient(sp.clientip, sp.clientcookies,  RI.restrictionTitle)) {
 				if (!HandleFiles(sp)) {
                     SitePass SP = new SitePass(sp.http_host, sp.http_url);
                     Dictionary<string,string> AP = ArgumentHelper.Organize(SP.Path, out SP.Path);
@@ -120,8 +120,10 @@ namespace SnsysUS
 			return FP.Process(FileProcessor.METHOD.GREY, false, false);
 		}
 		
-		public bool EvaluateClient (IPAddress addr, SCookie c, string authlevel) {
-			if (clientAuthorization.ContainsKey(addr) && c.key!=null && clientAuthorization[addr].CheckAuth(authlevel, c.key)) {return true;}
+		public bool EvaluateClient (IPAddress addr, List<SCookie> cs, string authlevel) {
+			foreach (SCookie c in cs) {
+				if (clientAuthorization.ContainsKey(addr) && c.key!=null && clientAuthorization[addr].CheckAuth(authlevel, c.key)) {return true;}
+			}
 			return false;
 		}
 		public bool IsURLRestricted (string url, out RestrictionInfo RI) {
