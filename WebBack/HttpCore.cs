@@ -66,7 +66,7 @@ namespace WebBack
 		public String http_protocol_versionstring;
 		public string http_host;
 		public IPAddress clientip;
-		public List<SCookie> clientcookies;
+		public List<SCookie> clientcookies = new List<SCookie>();
 		public Hashtable httpHeaders = new Hashtable();
 
 		public bool secure;
