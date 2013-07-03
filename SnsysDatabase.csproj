@@ -34,6 +34,7 @@
   <ItemGroup>
     <Compile Include="SnsysDatabase\Properties\AssemblyInfo.cs" />
     <Compile Include="SnsysDatabase\SnsysDB.cs" />
+    <Compile Include="SnsysDatabase\Datablock.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

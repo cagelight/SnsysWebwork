@@ -45,8 +45,10 @@ namespace SnsysWebwork
 				case "START":
 					TS.Start();
 					break;
-				case "SDBTEST":
-					SnsysStringDataBase TSDB = new SnsysStringDataBase ();
+				case "SDB":
+					SingleLayerSnsysDataBase TSDB = new SingleLayerSnsysDataBase ();
+					TSDB ["TEST1"] = new IDatablock[] {new DBString("VALUE1"), new DBString("VALUE2")};
+					TSDB ["TEST2"] = new IDatablock[] {new DBString("VALUE3"), new DBString("VALUE4")};
 					TSDB.Write ("test.sdb");
 					break;
 				default:
