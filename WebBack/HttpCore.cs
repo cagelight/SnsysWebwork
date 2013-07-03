@@ -70,7 +70,8 @@ namespace WebBack
 		public Hashtable httpHeaders = new Hashtable();
 
 		public bool secure;
-		
+		private DateTime startTime;
+		public TimeSpan elapsedTime {get {return DateTime.Now - this.startTime;}}
 		
 		private static int MAX_POST_SIZE = 10 * 1024 * 1024; // 10MB
 		
@@ -95,6 +96,7 @@ namespace WebBack
 			return data;
 		}
 		public void process() {
+			this.startTime = DateTime.Now;
             try {
                 inputStream = new BufferedStream(socket.GetStream());
                 outputCore = new BufferedStream(socket.GetStream());

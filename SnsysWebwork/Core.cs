@@ -9,6 +9,7 @@ using System.Threading;
 
 using WebBack;
 using SnsysUS;
+using SnsysDatabase;
 
 namespace SnsysWebwork
 {
@@ -30,7 +31,6 @@ namespace SnsysWebwork
 			Thread BPDF = new Thread (new ThreadStart(BrokenPipeDefenseForce));
 			BPDF.Start ();
 			SnsysUSServer TS = new SnsysUSServer(IPAddress.Any);
-			TS.Start();
 
 			while (true) {
 				string instr = Console.ReadLine();
@@ -41,6 +41,16 @@ namespace SnsysWebwork
 				case "RELOAD":
 					TS.ReloadConfigurations ();
 					Console.WriteLine ("Configurations Reloaded");
+					break;
+				case "START":
+					TS.Start();
+					break;
+				case "SDBTEST":
+					SnsysStringDataBase TSDB = new SnsysStringDataBase ();
+					TSDB.Write ("test.sdb");
+					break;
+				default:
+					Console.WriteLine ("Unknown Command.");
 					break;
 				}
 			}

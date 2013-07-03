@@ -68,6 +68,7 @@ namespace SnsysUS
                     Dictionary<string,string> AP = ArgumentHelper.Organize(SP.Path, out SP.Path);
                     sp.writeSuccess();
                     sp.WriteToClient(sitelogic.Generate(this, SP, AP).ToString());
+					sp.WriteToClient(String.Format("<!-- {0}ms elapsed. -->", sp.elapsedTime.TotalMilliseconds));
 				}
 			} else {
 				sp.writeSuccess();

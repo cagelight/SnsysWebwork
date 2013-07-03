@@ -47,5 +47,9 @@
       <Project>{B17D33FE-5942-49F3-BA53-8B8E29D2016F}</Project>
       <Name>WebBack</Name>
     </ProjectReference>
+    <ProjectReference Include="SnsysDatabase.csproj">
+      <Project>{5FCF7FA3-2A1B-480D-9829-248C39F95409}</Project>
+      <Name>SnsysDatabase</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>
