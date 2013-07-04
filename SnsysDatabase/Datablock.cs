@@ -20,16 +20,16 @@ namespace SnsysDatabase
 
 	public interface IDatablock {byte[] GetRaw(); byte Callsign{ get;}};
 
-	public class DBString : IDatablock {
+	public struct DBString : IDatablock {
 		public byte Callsign {get{return 0x00;}}
-		string value;
+		public string value;
 		public DBString(string value) {
 			this.value = value;
 		}
 		public static implicit operator DBString(string S) {
 			return new DBString (S);
 		}
-		public static explicit operator string(DBString S) {
+		public static implicit operator string(DBString S) {
 			return S.value;
 		}
 		public byte[] GetRaw() {
@@ -38,25 +38,54 @@ namespace SnsysDatabase
 		public static DBString FromRaw (byte[] raw) {
 			return new DBString(Encoding.UTF8.GetString (raw));
 		}
+		public override string ToString () {
+			return this.value;
+		}
 	}
 
-	public class DBInt : IDatablock {
+	public struct DBBool : IDatablock {
+		public byte Callsign {get{return 0x01;}}
+		public bool value;
+		public DBBool(bool value) {
+			this.value = value;
+		}
+		public static implicit operator DBBool(bool B) {
+			return new DBBool (B);
+		}
+		public static implicit operator bool(DBBool B) {
+			return B.value;
+		}
+		public byte[] GetRaw() {
+			return BitConverter.GetBytes (this.value);
+		}
+		public static DBBool FromRaw (byte[] raw) {
+			return new DBBool (BitConverter.ToBoolean (raw, 0));
+		}
+		public override string ToString (){
+			return this.value.ToString ();
+		}
+	}
+
+	public struct DBInt : IDatablock {
 		public byte Callsign {get{return 0x06;}}
-		int value;
+		public int value;
 		public DBInt(int value) {
 			this.value = value;
 		}
 		public static implicit operator DBInt(int I) {
 			return new DBInt (I);
 		}
-		public static explicit operator int(DBInt I) {
+		public static implicit operator int(DBInt I) {
 			return I.value;
 		}
 		public byte[] GetRaw() {
 			return BitConverter.GetBytes (this.value);
 		}
 		public static DBInt FromRaw (byte[] raw) {
-			return BitConverter.ToInt32 (raw, 0);
+			return new DBInt(BitConverter.ToInt32 (raw, 0));
+		}
+		public override string ToString (){
+			return this.value.ToString ();
 		}
 	}
 }
