@@ -46,10 +46,11 @@ namespace SnsysWebwork
 					TS.Start();
 					break;
 				case "SDB":
-					SingleLayerSnsysDataBase TSDB = new SingleLayerSnsysDataBase ();
-					TSDB ["TEST1"] = new IDatablock[] {new DBString("VALUE1"), new DBString("VALUE2")};
-					TSDB ["TEST2"] = new IDatablock[] {new DBString("VALUE3"), new DBString("VALUE4")};
+					SingleLayerSnsysDataBase TSDB = new SingleLayerSnsysDataBase ("TESTDATABASELOL");
+					TSDB ["TEST1"] = new IDatablock[] { new DBString("VALUE1"), new DBString("VALUE2") };
+					TSDB ["TEST2"] = new IDatablock[] { new DBString("VALUE3"), new DBString("VALUE4") };
 					TSDB.Write ("test.sdb");
+					TSDB.Debug ();
 					break;
 				default:
 					Console.WriteLine ("Unknown Command.");
