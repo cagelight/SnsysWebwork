@@ -22,6 +22,7 @@ namespace SnsysDatabase
 
 	public struct StringDatablock : IDatablock {
 		public byte Callsign {get{return 0x00;}}
+		public int Bytespace {get{return Encoding.UTF8.GetByteCount (this.value);}}
 		public string value;
 		public StringDatablock(string value) {
 			this.value = value;

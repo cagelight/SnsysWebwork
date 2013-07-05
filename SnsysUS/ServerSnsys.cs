@@ -154,6 +154,17 @@ namespace SnsysUS
 				return new string[] {};
 			}
 		}
+
+		public class ImageTagDatabase {
+			public Dictionary<string, ImageTagData> Database;
+		}
+
+		public class ImageTagData {
+			public List<string> Tags;
+			public bool Favorite;
+			public ImageTagData() {
+			}
+		}
 	}
 }
 
