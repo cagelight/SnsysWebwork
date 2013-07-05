@@ -78,16 +78,43 @@ namespace SnsysDatabase
 					for (ushort v = 0; v < valueIter; ++v) {
 						switch(readStream.ReadByte()) {
 						case 0x00:
-							keyValues[v] = DBString.FromRaw(readStream.ReadBytes(readStream.ReadInt32()));
+							keyValues[v] = StringDatablock.FromRaw(readStream.ReadBytes(readStream.ReadInt32()));
 							break;
 						case 0x01:
-							keyValues[v] = DBBool.FromRaw(readStream.ReadBytes(1));
+							keyValues[v] = BoolDatablock.FromRaw(readStream.ReadBytes(1));
+							break;
+						case 0x02:
+							keyValues[v] = SByteDatablock.FromRaw(readStream.ReadBytes(1));
+							break;
+						case 0x03:
+							keyValues[v] = ByteDatablock.FromRaw(readStream.ReadBytes(1));
+							break;
+						case 0x04:
+							keyValues[v] = ShortDatablock.FromRaw(readStream.ReadBytes(2));
+							break;
+						case 0x05:
+							keyValues[v] = UShortDatablock.FromRaw(readStream.ReadBytes(2));
 							break;
 						case 0x06:
-							keyValues[v] = DBInt.FromRaw(readStream.ReadBytes(4));
+							keyValues[v] = IntDatablock.FromRaw(readStream.ReadBytes(4));
+							break;
+						case 0x07:
+							keyValues[v] = UIntDatablock.FromRaw(readStream.ReadBytes(4));
+							break;
+						case 0x08:
+							keyValues[v] = LongDatablock.FromRaw(readStream.ReadBytes(8));
+							break;
+						case 0x09:
+							keyValues[v] = ULongDatablock.FromRaw(readStream.ReadBytes(8));
+							break;
+						case 0x0A:
+							keyValues[v] = FloatDatablock.FromRaw(readStream.ReadBytes(4));
+							break;
+						case 0x0B:
+							keyValues[v] = DoubleDatablock.FromRaw(readStream.ReadBytes(8));
 							break;
 						default:
-							break;
+							throw new FormatException("An invalid type byte was detected, valid type bytes are 0x00 to 0x0A.");
 						}
 					}
 					SLSDB[keyName] = keyValues;
