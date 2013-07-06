@@ -16,21 +16,20 @@ namespace SnsysUS
 
 	public class SnsysUSServer : IServer {
 		public static Dictionary <string, string> LevelKeys = new Dictionary<string, string>() {
-			{"L1","DF43D66DE1590F605FCACE63862B73030149931731E914D0A6D1C03571AE3CA83010DDE35865D63EF14B83504DEE4D58846A78F5DC71E1A69C9C68A4CC899C38"}
+			{"BASIC","DF43D66DE1590F605FCACE63862B73030149931731E914D0A6D1C03571AE3CA83010DDE35865D63EF14B83504DEE4D58846A78F5DC71E1A69C9C68A4CC899C38"}
 		};
-		private static RestrictionInfo L1 = new RestrictionInfo(true, "L1");
         public SnsysUSWeb sitelogic = new SnsysUSWeb();
 		public TcpListener httptcpl;
 		public Thread httpprocess;
 		public bool active = false;
-		public Dictionary<IPAddress, ClientAuthorizations> clientAuthorization;
+		public Dictionary<IPAddress, ClientAuthorizations> clientAuthorizations;
 
 		public string[] restrictedWords;
 
 		public SnsysUSServer(IPAddress addr){
 			httptcpl = new TcpListener(addr, 80);
-			clientAuthorization = new Dictionary<IPAddress, ClientAuthorizations>();
-			this.restrictedWords = SnsysUSServer.LoadRestrictedWordsFile ();
+			clientAuthorizations = new Dictionary<IPAddress, ClientAuthorizations>();
+			this.ReloadConfigurations ();
 
 		} 
 		public void ReloadConfigurations () {
@@ -61,8 +60,8 @@ namespace SnsysUS
 				sp.WriteToClient (new StreamReader(WRes.GetResponseStream()).ReadToEnd());
 				return;
 			}*/
-            RestrictionInfo RI;
-			if (!IsURLRestricted(sp.http_url, out RI) || EvaluateClient(sp.clientip, sp.clientcookies,  RI.restrictionTitle)) {
+            string RI;
+			if (!IsURLRestricted(sp.http_url, out RI) || EvaluateClient(sp.clientip, sp.clientcookies, RI)) {
 				if (!HandleFiles(sp)) {
                     SitePass SP = new SitePass(sp.http_host, sp.http_url);
                     Dictionary<string,string> AP = ArgumentHelper.Organize(SP.Path, out SP.Path);
@@ -72,7 +71,7 @@ namespace SnsysUS
 				}
 			} else {
 				sp.writeSuccess();
-				sp.WriteToClient(Generic.SimpleAuth(RI.restrictionTitle,"http://"+sp.http_host+sp.http_url));
+				sp.WriteToClient(Generic.SimpleAuth(RI,"http://"+sp.http_host+sp.http_url));
 			}
 		}
 		public void HandlePOST (HTTPProcessor sp, StreamReader sr) {
@@ -83,10 +82,10 @@ namespace SnsysUS
 				switch (MKVP.Key) {
 				case "SAUTH":
 					foreach (KeyValuePair<string,string> KVP in MKVP.Value) {
-						if (!clientAuthorization.ContainsKey(sp.clientip)) { clientAuthorization.Add(sp.clientip, new ClientAuthorizations()); }
+						if (!clientAuthorizations.ContainsKey(sp.clientip)) { clientAuthorizations.Add(sp.clientip, new ClientAuthorizations()); }
 						if (IsLevelKeyValid(KVP.Key, KVP.Value)) {
 							SCookie nc = SCookie.GenerateNew(KVP.Key);
-							clientAuthorization[sp.clientip].Add(KVP.Key, nc.key);
+							clientAuthorizations[sp.clientip].Add(KVP.Key, nc.key);
 							sp.writeCookie(nc);
 							responseText.Add(String.Format("Authorization \"{0}\" Granted.", KVP.Key));
 						} else {
@@ -123,18 +122,18 @@ namespace SnsysUS
 		
 		public bool EvaluateClient (IPAddress addr, List<SCookie> cs, string authlevel) {
 			foreach (SCookie c in cs) {
-				if (clientAuthorization.ContainsKey(addr) && c.key!=null && clientAuthorization[addr].CheckAuth(authlevel, c.key)) {return true;}
+				if (clientAuthorizations.ContainsKey(addr) && c.key!=null && clientAuthorizations[addr].CheckAuth(authlevel, c.key)) {return true;}
 			}
 			return false;
 		}
-		public bool IsURLRestricted (string url, out RestrictionInfo RI) {
+		public bool IsURLRestricted (string url, out string RI) {
 			foreach (string restr in this.restrictedWords) {
 				if (url.ToLower().Contains (restr.ToLower())) {
-					RI = L1;
+					RI = "BASIC";
 					return true;
 				}
 			}
-	        RI = RestrictionInfo.NONE;
+	        RI = String.Empty;
 	        return false;
 		}
 		
@@ -152,17 +151,6 @@ namespace SnsysUS
 			} catch (Exception e){
 				Console.WriteLine (e);
 				return new string[] {};
-			}
-		}
-
-		public class ImageTagDatabase {
-			public Dictionary<string, ImageTagData> Database;
-		}
-
-		public class ImageTagData {
-			public List<string> Tags;
-			public bool Favorite;
-			public ImageTagData() {
 			}
 		}
 	}

@@ -7,15 +7,6 @@ using WebFront;
 
 namespace WebBack
 {
-	public struct RestrictionInfo {
-		public readonly bool isRestricted;
-		public readonly string restrictionTitle;
-		public RestrictionInfo(bool ir, string level) {
-			this.isRestricted = ir;
-			this.restrictionTitle = level;
-		}
-        public static RestrictionInfo NONE = new RestrictionInfo(false, null);
-	}
 	public struct SCookie {
 		public string name;
 		public string key;
@@ -119,5 +110,14 @@ namespace WebBack
         }
     }
 
-    //public interface ISite { HTML.Webpage Generate(SitePass URLInfo, Dictionary<string, string> args);}
+	public class ImageTagDatabase {
+		public Dictionary<string, ImageTagData> Database;
+	}
+
+	public class ImageTagData {
+		public List<string> Tags;
+		public bool Favorite;
+		public ImageTagData() {
+		}
+	}
 }

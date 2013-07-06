@@ -16,34 +16,16 @@ namespace SnsysWebwork
 	public class Executor {
 		public static int Main(String[] args) {
 
-			Dictionary<string,string> sortedArgs = new Dictionary<string, string> ();
-			foreach (string s in args) {
-				try {
-					string[] a = s.Split('=');
-					if (a.Length != 2) {throw new ArgumentException("Malformed argument in arguments.");}
-					sortedArgs[a[0]] = a[1];
-				} catch (Exception e) {
-					Console.WriteLine (e);
-				}
-			}
-
-			Console.WriteLine ("Welcome to SnsysWebwork.");
-			Thread BPDF = new Thread (new ThreadStart(BrokenPipeDefenseForce));
-			BPDF.Start ();
-			SnsysUSServer TS = new SnsysUSServer(IPAddress.Any);
-
-			while (true) {
-				string instr = Console.ReadLine();
-				string[] instrS = instr.Split(' ');
-				switch (instrS[0].ToUpper()) {
-				case "EXIT":
-					return 0;
-				case "RELOAD":
-					TS.ReloadConfigurations ();
-					Console.WriteLine ("Configurations Reloaded");
+			if (args.Length > 0) {
+				switch (args [0].ToUpper()) {
+				case "EDIT":
+					if (args.Length > 1) {
+						EditDatabase (args [1]);
+					}
 					break;
-				case "START":
-					TS.Start();
+				case "DBINFO":
+					DatabaseInfo DI = SDBHelper.ReadDatabaseHeader (args [1]);
+					Console.WriteLine (String.Format("Name: {0}\nSubtype: {1}", DI.name, DI.subtype));
 					break;
 				case "SDB":
 					SingleLayerSnsysDatabase TSDB = new SingleLayerSnsysDatabase ("TESTDATABASELOL");
@@ -62,10 +44,46 @@ namespace SnsysWebwork
 					TDDB.Write ("test2.sdb");
 					TDDB.Debug ();
 					break;
+				}
+				return 0;
+			}
+
+			Console.WriteLine ("Welcome to SnsysWebwork.");
+			Thread BPDF = new Thread (new ThreadStart(BrokenPipeDefenseForce));
+			BPDF.Start ();
+			SnsysUSServer TS = new SnsysUSServer(IPAddress.Any);
+			TS.Start();
+
+			while (true) {
+				string instr = Console.ReadLine();
+				string[] instrS = instr.Split(' ');
+				switch (instrS[0].ToUpper()) {
+				case "EXIT":
+					return 0;
+				case "RELOAD":
+					TS.ReloadConfigurations ();
+					Console.WriteLine ("Configurations Reloaded");
+					break;
 				default:
 					Console.WriteLine ("Unknown Command.");
 					break;
 				}
+			}
+		}
+
+		private static void EditDatabase (string dir, bool fromCurrent = true) {
+			try {
+				DatabaseInfo DI = SDBHelper.ReadDatabaseHeader(dir, fromCurrent);
+				switch(DI.subtype) {
+				case "BasicSDB":
+					break;
+				case "DoubleSDB":
+					break;
+				default:
+					throw new FormatException("This version of the SnsysWebwork does not recognize the subtype of this SnsysDatabase.");
+				}
+			} catch (Exception e) {
+				Console.WriteLine (e);
 			}
 		}
 

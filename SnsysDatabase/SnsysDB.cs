@@ -8,9 +8,23 @@ namespace SnsysDatabase
 {
 	public static class SDBHelper {
 		public static byte[] Precode = Encoding.UTF8.GetBytes("SSDB");
-		public static Dictionary<byte, IDatablock> BDB = new Dictionary<byte, IDatablock> () {
-			{0x00, new StringDatablock()},
-		};
+		public static DatabaseInfo ReadDatabaseHeader (string dir, bool fromCurrent = true) {
+			string path = fromCurrent?Path.Combine(Environment.CurrentDirectory, dir):dir;
+			BinaryReader readStream = new BinaryReader(File.OpenRead(path));
+			if (Encoding.UTF8.GetString(readStream.ReadBytes(4)) != "SSDB") {throw new FormatException("Not a SnsysDatabase.");}
+			string DBType = Encoding.UTF8.GetString(readStream.ReadBytes((int)readStream.ReadByte()));
+			string DBName = Encoding.UTF8.GetString(readStream.ReadBytes((int)readStream.ReadByte()));
+			readStream.Close ();
+			return new DatabaseInfo (DBName, DBType);
+		}
+	}
+	public struct DatabaseInfo {
+		public string name;
+		public string subtype;
+		public DatabaseInfo (string name, string subtype) {
+			this.name = name;
+			this.subtype = subtype;
+		}
 	}
 	public class SingleLayerSnsysDatabase {
 		public static SingleLayerSnsysDatabase NULL = new SingleLayerSnsysDatabase();
@@ -32,7 +46,6 @@ namespace SnsysDatabase
 				string path = fromCurrent?Path.Combine(Environment.CurrentDirectory, dir):dir;
 				BinaryWriter writeStream = new BinaryWriter(File.Create(path));
 				writeStream.Write (SDBHelper.Precode); //SSDB (Type header)
-				writeStream.Write (BitConverter.IsLittleEndian); //Is this file written little endian? (BOOL)
 				byte[] subtypeBytes = Encoding.UTF8.GetBytes (Subtype);
 				writeStream.Write ((byte)subtypeBytes.Length); //Number of bytes to read for SDB Subtype. (BYTE)
 				writeStream.Write (subtypeBytes); //Subtype name bytes.
@@ -61,10 +74,8 @@ namespace SnsysDatabase
 		public static SingleLayerSnsysDatabase Read(string dir, bool fromCurrent = true) {
 			try {
 				string path = fromCurrent?Path.Combine(Environment.CurrentDirectory, dir):dir;
-				//bool reverseOrder = false;
 				BinaryReader readStream = new BinaryReader(File.OpenRead(path));
 				if (Encoding.UTF8.GetString(readStream.ReadBytes(4)) != "SSDB") {throw new FormatException("Not a SnsysDatabase.");}
-				if (BitConverter.ToBoolean(readStream.ReadBytes(1), 0) != BitConverter.IsLittleEndian) {}//reverseOrder = true;}
 				string DBType = Encoding.UTF8.GetString(readStream.ReadBytes((int)readStream.ReadByte()));
 				if (DBType != SingleLayerSnsysDatabase.Subtype) {throw new FormatException("Not a BasicSDB Subtype SnsysDatabase");}
 				string DBName = Encoding.UTF8.GetString(readStream.ReadBytes((int)readStream.ReadByte()));
@@ -130,9 +141,9 @@ namespace SnsysDatabase
 			SingleLayerSnsysDatabase DB = SingleLayerSnsysDatabase.Read ("test.sdb");
 			Console.WriteLine (DB.name);
 			foreach (KeyValuePair<string, IDatablock[]> KVP in DB.Database) {
-				Console.WriteLine (KVP.Key);
+				Console.WriteLine (String.Format(">{0}", KVP.Key));
 				foreach (IDatablock ID in KVP.Value) {
-					Console.WriteLine (ID.ToString());
+					Console.WriteLine (String.Format("=>{0}", ID.ToString()));
 				}
 			}
 		}
@@ -164,7 +175,6 @@ namespace SnsysDatabase
 				string path = fromCurrent?Path.Combine(Environment.CurrentDirectory, dir):dir;
 				BinaryWriter writeStream = new BinaryWriter(File.Create(path));
 				writeStream.Write (SDBHelper.Precode); //SSDB (Type header)
-				writeStream.Write (BitConverter.IsLittleEndian); //Is this file written little endian? (BOOL)
 				byte[] subtypeBytes = Encoding.UTF8.GetBytes (Subtype);
 				writeStream.Write ((byte)subtypeBytes.Length); //Number of bytes to read for SDB Subtype. (BYTE)
 				writeStream.Write (subtypeBytes); //Subtype name bytes.
@@ -199,10 +209,8 @@ namespace SnsysDatabase
 		public static DoubleLayerSnsysDatabase Read(string dir, bool fromCurrent = true) {
 			try {
 				string path = fromCurrent?Path.Combine(Environment.CurrentDirectory, dir):dir;
-				//bool reverseOrder = false;
 				BinaryReader readStream = new BinaryReader(File.OpenRead(path));
 				if (Encoding.UTF8.GetString(readStream.ReadBytes(4)) != "SSDB") {throw new FormatException("Not a SnsysDatabase.");}
-				if (BitConverter.ToBoolean(readStream.ReadBytes(1), 0) != BitConverter.IsLittleEndian) {}//reverseOrder = true;}
 				string DBType = Encoding.UTF8.GetString(readStream.ReadBytes((int)readStream.ReadByte()));
 				if (DBType != DoubleLayerSnsysDatabase.Subtype) {throw new FormatException("Not a BasicSDB Subtype SnsysDatabase");}
 				string DBName = Encoding.UTF8.GetString(readStream.ReadBytes((int)readStream.ReadByte()));
@@ -272,11 +280,11 @@ namespace SnsysDatabase
 			DoubleLayerSnsysDatabase DB = DoubleLayerSnsysDatabase.Read ("test2.sdb");
 			Console.WriteLine (DB.name);
 			foreach (KeyValuePair<string, Dictionary<string, IDatablock[]>> KVP in DB.Database) {
-				Console.WriteLine (String.Format("-{0}", KVP.Key));
+				Console.WriteLine (String.Format(">{0}", KVP.Key));
 				foreach (KeyValuePair<string, IDatablock[]> KVP2 in KVP.Value) {
-					Console.WriteLine (String.Format("--{0}", KVP2.Key));
+					Console.WriteLine (String.Format("=>{0}", KVP2.Key));
 					foreach (IDatablock ID in KVP2.Value) {
-						Console.WriteLine (String.Format("---{0}", ID.ToString()));
+						Console.WriteLine (String.Format("==>{0}", ID.ToString()));
 					}
 				}
 			}
