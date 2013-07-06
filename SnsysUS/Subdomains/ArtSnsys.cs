@@ -20,12 +20,12 @@ namespace SnsysUS {
 			WP.Head += HTML.Link().Rel("stylesheet").Href("/snsys.css");
 			WP.Head += HTML.Script("").Src("/jquery-1.10.1.min.js");
 			WP.Head += HTML.Script("").Src("/gal.js");
-			string galPath = Path.Combine(rootPath, galName);
+			string galPath = Path.Combine(artRootPath, galName);
 			bool homePage = galName == "Art" || SnsysUSWeb.IsForbiddenGallery(galName) || !Directory.Exists(galPath) ? true : false;
 			if (homePage) {
 				WP.Body += SnsysUSGeneric.TitleBar(galName);
 				List<HTMLContent> LI = new List<HTMLContent>();
-				foreach (string f in Directory.GetDirectories(rootPath)) {
+				foreach (string f in Directory.GetDirectories(artRootPath)) {
 					string collectionName = SnsysHelper.Isolate(f);
 					if (!this.IsHiddenGallery(collectionName, parent.restrictedWords)) {
 						LI.Add(HTML.Attribute(HTML.H1(collectionName).Class("light")).Href(SP.TotalURL + "?collection=" + collectionName).Class("light"));
@@ -62,7 +62,7 @@ namespace SnsysUS {
 						for (int i = 0; i < level3Files.Length; ++i) {
 							string thumbName;
 							if (ArtSnsysHelper.HasValidExtension(level3FilesIsolated[i], out thumbName)) {
-								string thumbPath = Path.Combine(thumbRootPath, galName, l1s, l2s, thumbName);
+								string thumbPath = Path.Combine(artThumbRootPath, galName, l1s, l2s, thumbName);
 								ArtSnsysHelper.HandleThumbs(level3Files[i], thumbPath);
 
 								string imageURL = String.Join("/", "Art", galName, l1s, l2s, level3FilesIsolated[i]);
@@ -81,7 +81,7 @@ namespace SnsysUS {
 						for (int i = 0; i < level2Files.Length; ++i) {
 							string thumbName;
 							if (ArtSnsysHelper.HasValidExtension(level2FilesIsolated[i], out thumbName)) {
-								string thumbPath = Path.Combine(thumbRootPath, galName, l1s, thumbName);
+								string thumbPath = Path.Combine(artThumbRootPath, galName, l1s, thumbName);
 								ArtSnsysHelper.HandleThumbs(level2Files[i], thumbPath);
 								string imageURL = String.Join("/", "Art", galName, l1s, level2FilesIsolated[i]);
 								string thumbURL = String.Join("/", "Art", ".thumb", galName, l1s, thumbName);
@@ -109,7 +109,7 @@ namespace SnsysUS {
 					for (int i = 0; i < level1Files.Length; ++i) {
 						string thumbName;
 						if (ArtSnsysHelper.HasValidExtension(level1FilesIsolated[i], out thumbName)) {
-							string thumbPath = Path.Combine(thumbRootPath, galName, thumbName);
+							string thumbPath = Path.Combine(artThumbRootPath, galName, thumbName);
 							ArtSnsysHelper.HandleThumbs(level1Files[i], thumbPath);
 
 							string imageURL = String.Join("/", "Art", galName, level1FilesIsolated[i]);

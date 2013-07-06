@@ -14,11 +14,12 @@ using SnsysDatabase;
 
 namespace SnsysUS {
     public partial class SnsysUSWeb {
-        private readonly string rootPath;
-        private readonly string thumbRootPath;
+        private readonly string artRootPath;
+        private readonly string artThumbRootPath;
 		public SnsysUSWeb() {
-            rootPath = Path.Combine(Environment.CurrentDirectory, "Assets", "Art");
-            thumbRootPath = Path.Combine(Environment.CurrentDirectory, "Assets", "Art", ".thumb");
+			artRootPath = Path.Combine(Environment.CurrentDirectory, "Assets", "Art");
+			artThumbRootPath = Path.Combine(Environment.CurrentDirectory, "Assets", "Art", ".thumb");
+			this.InitializeTagArt ();
         }
         public HTML.Webpage Generate(SnsysUSServer parent, SitePass SP, Dictionary<string, string> args) {
             string[] divURL = SP.Host.Split('.');

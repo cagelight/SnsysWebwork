@@ -109,15 +109,4 @@ namespace WebBack
             this.Path = Path;
         }
     }
-
-	public class ImageTagDatabase {
-		public Dictionary<string, ImageTagData> Database;
-	}
-
-	public class ImageTagData {
-		public List<string> Tags;
-		public bool Favorite;
-		public ImageTagData() {
-		}
-	}
 }
