@@ -41,6 +41,8 @@
     <Compile Include="SnsysUS\SiteSnsys.cs" />
     <Compile Include="SnsysUS\SnsysUSGeneric.cs" />
     <Compile Include="SnsysUS\SnsysDBOperations.cs" />
+    <Compile Include="SnsysUS\Subdomains\TagArtSnsys.cs" />
+    <Compile Include="SnsysUS\Subdomains\ArtSnsys.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -56,5 +58,8 @@
       <Project>{5FCF7FA3-2A1B-480D-9829-248C39F95409}</Project>
       <Name>SnsysDatabase</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="SnsysUS\Subdomains\" />
   </ItemGroup>
 </Project>
